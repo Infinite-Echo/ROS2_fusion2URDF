@@ -4,8 +4,11 @@
 import adsk, adsk.core, adsk.fusion, traceback
 import os
 import sys
-from .utils import utils
+from .utils import utils, test_utils
 from .core import Link, Joint, Write
+import csv
+import numpy as np
+from scipy.spatial.transform.rotation import Rotation as R
 
 """
 # length unit is 'cm' and inertial unit is 'kg/cm^2'
@@ -37,6 +40,16 @@ def run(context):
 
         root = design.rootComponent  # root component 
         components = design.allComponents
+
+        app.log('Test\n')
+
+        '''
+        Plan:
+        1. Export Base Link and inner_shoulder stls
+        '''
+
+        test_utils.test_urdf_2(app=app, design=design)
+                
 
         # set the names        
         robot_name = root.name.split()[0]
