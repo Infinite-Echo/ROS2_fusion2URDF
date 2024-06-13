@@ -121,9 +121,9 @@ class ExportUrdfCommandExecuteHandler(adsk.core.CommandEventHandler):
 
             robot_name = adsk.core.StringValueCommandInput.cast(inputs.itemById('robot_name_string_input'))
             export_path = adsk.core.TextBoxCommandInput.cast(inputs.itemById('export_path_display'))
-            urdf = URDF(robot_name=robot_name.value, export_path=export_path.text)
+            urdf = URDF(robot_name=robot_name.value, export_path=export_path.text, app=_app)
             urdf.create_base_link(base_link_occ=base_link)
-            urdf.traverse_link(app=_app, parent_link=base_link, parent_joint=None)
+            urdf.traverse_link(parent_link=base_link, parent_joint=None)
 
             urdf.export()
             _app.log(f'Export Finished')

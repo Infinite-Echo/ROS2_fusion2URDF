@@ -14,6 +14,7 @@ class Link(Element):
         self.append(self.inertial)
         self.append(self.visual)
         self.append(self.collision)
+        self.set_mesh_filepath(filepath=f'file://$(find ${{package_name}})/src/meshes/{name}.stl')
 
     def set_inertial(self, mass, xyz: str, inertia_dict: dict[str, str]):
         self.inertial.set_mass_value(mass=mass)
