@@ -12,6 +12,7 @@ from .urdf.URDF import URDF
 import numpy as np
 from scipy.spatial.transform.rotation import Rotation as R
 from .urdf.urdf_utils import get_joint_child_occ, get_occurrence_tf
+from .ROS2.robot_description_pkg import generate_robot_description_pkg
 
 """
 # length unit is 'cm' and inertial unit is 'kg/cm^2'
@@ -119,12 +120,12 @@ class ExportUrdfCommandExecuteHandler(adsk.core.CommandEventHandler):
             base_link_selection_input = adsk.core.SelectionCommandInput.cast(inputs.itemById('base_link_selection'))
             base_link = adsk.fusion.Occurrence.cast(base_link_selection_input.selection(0).entity)
 
-            robot_name = adsk.core.StringValueCommandInput.cast(inputs.itemById('robot_name_string_input'))
-            export_path = adsk.core.TextBoxCommandInput.cast(inputs.itemById('export_path_display'))
-            urdf = URDF(robot_name=robot_name.value, export_path=export_path.text, app=_app)
+            robot_name = adsk.core.StringValueCommandInput.cast(inputs.itemById('robot_name_string_input')).value
+            export_path = adsk.core.TextBoxCommandInput.cast(inputs.itemById('export_path_display')).text
+            generate_robot_description_pkg(export_path=export_path, robot_name=robot_name)
+            urdf = URDF(robot_name=robot_name, export_path=export_path, app=_app)
             urdf.create_base_link(base_link_occ=base_link)
             urdf.traverse_link(parent_link=base_link, parent_joint=None)
-
             urdf.export()
             _app.log(f'Export Finished')
 

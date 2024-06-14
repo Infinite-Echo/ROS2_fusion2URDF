@@ -30,20 +30,21 @@ class URDF(ElementTree):
         os.makedirs(f'{self.export_path}/{self.package_name}/src/meshes', exist_ok=True)
 
     def create_base_link(self, base_link_occ: adsk.fusion.Occurrence):
+        base_link_occ.component.name = 'base'
         base_link = Link('base')
         tf = get_occurrence_tf(base_link_occ)
-        tf[0:3, 3] = 0
+        tf[0:3, 3] = 0.0
         base_link.set_from_tf(tf=tf)
         physical_properties = base_link_occ.getPhysicalProperties(adsk.fusion.CalculationAccuracy.VeryHighCalculationAccuracy)
         mass = physical_properties.mass
         moment_of_inertia_tuple = physical_properties.getXYZMomentsOfInertia()
         inertia_dict = {
-            "xx":f'{moment_of_inertia_tuple[1]}',
-            "yy":f'{moment_of_inertia_tuple[2]}',
-            "zz":f'{moment_of_inertia_tuple[3]}',
-            "xy":f'{moment_of_inertia_tuple[4]}',
-            "yz":f'{moment_of_inertia_tuple[5]}',
-            "xz":f'{moment_of_inertia_tuple[6]}'
+            "ixx":f'{moment_of_inertia_tuple[1]}',
+            "iyy":f'{moment_of_inertia_tuple[2]}',
+            "izz":f'{moment_of_inertia_tuple[3]}',
+            "ixy":f'{moment_of_inertia_tuple[4]}',
+            "iyz":f'{moment_of_inertia_tuple[5]}',
+            "ixz":f'{moment_of_inertia_tuple[6]}'
         }
         base_link.set_inertial(mass=mass, xyz="0.0 0.0 0.0", inertia_dict=inertia_dict)
         self.append_link(base_link)
@@ -55,11 +56,7 @@ class URDF(ElementTree):
                 continue
             child_link = get_joint_child_occ(parent=parent_link, joint=joint)
             self.create_link(child_link=child_link, child_joint=joint, parent_link=parent_link, parent_joint=parent_joint)
-            if(child_link.asBuiltJoints.count >= 2):
-                self.traverse_link(parent_link=child_link, parent_joint=joint)
-            else:
-                return
-                
+            self.traverse_link(parent_link=child_link, parent_joint=joint)
 
     def create_link(self, child_link: adsk.fusion.Occurrence, child_joint: adsk.fusion.AsBuiltJoint, parent_link: adsk.fusion.Occurrence, parent_joint: adsk.fusion.AsBuiltJoint = None):
         parent_link_tf = None
@@ -89,23 +86,23 @@ class URDF(ElementTree):
             parent_joint_tf[0:3, 3] = parent_joint_xyz
             child_link_tf = get_occurrence_tf(child_link)
             child_joint_tf = np.dot(np.linalg.inv(parent_joint_tf), child_link_tf)
+            new_link.set_from_tf(np.dot(np.linalg.inv(child_joint_tf), child_link_tf))
         else:
             parent_link_tf = get_occurrence_tf(parent_link)
             child_link_tf = get_occurrence_tf(child_link)
             child_joint_tf = np.dot(np.linalg.inv(parent_link_tf), child_link_tf)
             
         new_joint.set_from_tf(child_joint_tf)
-        new_link.set_from_tf(np.dot(np.linalg.inv(child_joint_tf), child_link_tf))
         physical_properties = child_link.getPhysicalProperties(adsk.fusion.CalculationAccuracy.VeryHighCalculationAccuracy)
         mass = physical_properties.mass
         moment_of_inertia_tuple = physical_properties.getXYZMomentsOfInertia()
         inertia_dict = {
-            "xx":f'{moment_of_inertia_tuple[1]}',
-            "yy":f'{moment_of_inertia_tuple[2]}',
-            "zz":f'{moment_of_inertia_tuple[3]}',
-            "xy":f'{moment_of_inertia_tuple[4]}',
-            "yz":f'{moment_of_inertia_tuple[5]}',
-            "xz":f'{moment_of_inertia_tuple[6]}'
+            "ixx":f'{moment_of_inertia_tuple[1]}',
+            "iyy":f'{moment_of_inertia_tuple[2]}',
+            "izz":f'{moment_of_inertia_tuple[3]}',
+            "ixy":f'{moment_of_inertia_tuple[4]}',
+            "iyz":f'{moment_of_inertia_tuple[5]}',
+            "ixz":f'{moment_of_inertia_tuple[6]}'
         }
         new_link.set_inertial(mass=mass, xyz="0.0 0.0 0.0", inertia_dict=inertia_dict)
         self.append_link(new_link)
@@ -128,7 +125,8 @@ class URDF(ElementTree):
     def export(self):
         xml_string = ET.tostring(self.getroot(), 'utf-8')
         formatted_xml = self.prettify_urdf(xml_string=xml_string)
-        with open(f'{self.export_path}/{self.robot_name}.xacro', 'w') as file:
+        os.makedirs(f'{self.export_path}/{self.package_name}/src/urdf', exist_ok=True)
+        with open(f'{self.export_path}/{self.package_name}/src/urdf/{self.robot_name}.xacro', 'w') as file:
             file.write(formatted_xml)
 
     def prettify_urdf(self, xml_string):
