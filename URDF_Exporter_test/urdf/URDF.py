@@ -34,16 +34,16 @@ class URDF(ElementTree):
         tf = get_occurrence_tf(base_link_occ)
         tf[0:3, 3] = 0.0
         base_link.set_from_tf(tf=tf)
-        physical_properties = base_link_occ.getPhysicalProperties(adsk.fusion.CalculationAccuracy.VeryHighCalculationAccuracy)
+        physical_properties = base_link_occ.component.getPhysicalProperties(adsk.fusion.CalculationAccuracy.VeryHighCalculationAccuracy)
         mass = physical_properties.mass
         moment_of_inertia_tuple = physical_properties.getXYZMomentsOfInertia()
         inertia_dict = {
-            "ixx":f'{moment_of_inertia_tuple[1]}',
-            "iyy":f'{moment_of_inertia_tuple[2]}',
-            "izz":f'{moment_of_inertia_tuple[3]}',
-            "ixy":f'{moment_of_inertia_tuple[4]}',
-            "iyz":f'{moment_of_inertia_tuple[5]}',
-            "ixz":f'{moment_of_inertia_tuple[6]}'
+            "ixx":f'{moment_of_inertia_tuple[1] * (10**-4)}',
+            "iyy":f'{moment_of_inertia_tuple[2] * (10**-4)}',
+            "izz":f'{moment_of_inertia_tuple[3] * (10**-4)}',
+            "ixy":f'{moment_of_inertia_tuple[4] * (10**-4)}',
+            "iyz":f'{moment_of_inertia_tuple[5] * (10**-4)}',
+            "ixz":f'{moment_of_inertia_tuple[6] * (10**-4)}'
         }
         base_link.set_inertial(mass=mass, xyz="0.0 0.0 0.0", inertia_dict=inertia_dict)
         self.append_link(base_link)
@@ -97,16 +97,16 @@ class URDF(ElementTree):
             child_joint_tf = np.dot(np.linalg.inv(parent_link_tf), child_link_tf)
 
         new_joint.set_from_tf(child_joint_tf)
-        physical_properties = child_link.getPhysicalProperties(adsk.fusion.CalculationAccuracy.VeryHighCalculationAccuracy)
+        physical_properties = child_link.component.getPhysicalProperties(adsk.fusion.CalculationAccuracy.VeryHighCalculationAccuracy)
         mass = physical_properties.mass
         moment_of_inertia_tuple = physical_properties.getXYZMomentsOfInertia()
         inertia_dict = {
-            "ixx":f'{moment_of_inertia_tuple[1]}',
-            "iyy":f'{moment_of_inertia_tuple[2]}',
-            "izz":f'{moment_of_inertia_tuple[3]}',
-            "ixy":f'{moment_of_inertia_tuple[4]}',
-            "iyz":f'{moment_of_inertia_tuple[5]}',
-            "ixz":f'{moment_of_inertia_tuple[6]}'
+            "ixx":f'{moment_of_inertia_tuple[1] * (10**-4)}',
+            "iyy":f'{moment_of_inertia_tuple[2] * (10**-4)}',
+            "izz":f'{moment_of_inertia_tuple[3] * (10**-4)}',
+            "ixy":f'{moment_of_inertia_tuple[4] * (10**-4)}',
+            "iyz":f'{moment_of_inertia_tuple[5] * (10**-4)}',
+            "ixz":f'{moment_of_inertia_tuple[6] * (10**-4)}'
         }
         new_link.set_inertial(mass=mass, xyz="0.0 0.0 0.0", inertia_dict=inertia_dict)
         self.append_link(new_link)
