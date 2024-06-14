@@ -53,12 +53,12 @@ class LinkElement(Element):
 
     def set_xyz_value(self, xyz):
         if type(xyz) == list:
-            xyz = f"{xyz[0]} {xyz[1]} {xyz[2]}"
+            xyz = f"{round(xyz[0] /1000, 6)} {round(xyz[1] /1000, 6)} {round(xyz[2] /1000, 6)}"
         self.__origin.attrib["xyz"] = xyz
 
     def set_rpy_value(self, rpy):
         if type(rpy) == list:
-            rpy = f"{rpy[0]} {rpy[1]} {rpy[2]}"
+            rpy = f"{round(rpy[0], 6)} {round(rpy[1], 6)} {round(rpy[2], 6)}"
         self.__origin.attrib["rpy"] = rpy
 
 
@@ -66,7 +66,7 @@ class Visual(LinkElement):
     def __init__(self):
         super().__init__("visual")
         self.__geometry = Element("geometry")
-        self.__mesh = Element("mesh", attrib={"filename": " "})
+        self.__mesh = Element("mesh", attrib={"filename": " ", "scale":"0.001 0.001 0.001"})
         self.__geometry.append(self.__mesh)
         self.append(self.__geometry)
 
@@ -81,7 +81,7 @@ class Collision(LinkElement):
     def __init__(self):
         super().__init__("collision")
         self.__geometry = Element("geometry")
-        self.__mesh = Element("mesh", attrib={"filename": " "})
+        self.__mesh = Element("mesh", attrib={"filename": " ", "scale":"0.001 0.001 0.001"})
         self.__geometry.append(self.__mesh)
         self.append(self.__geometry)
 
