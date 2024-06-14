@@ -53,7 +53,7 @@ class LinkElement(Element):
 
     def set_xyz_value(self, xyz):
         if type(xyz) == list:
-            xyz = f"{round(xyz[0] /1000, 6)} {round(xyz[1] /1000, 6)} {round(xyz[2] /1000, 6)}"
+            xyz = f"{round(xyz[0] /100, 6)} {round(xyz[1] /100, 6)} {round(xyz[2] /100, 6)}"
         self.__origin.attrib["xyz"] = xyz
 
     def set_rpy_value(self, rpy):

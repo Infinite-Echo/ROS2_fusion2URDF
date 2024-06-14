@@ -16,6 +16,7 @@ class Joint(Element):
         self.append(self.__child)
         if(joint_type != 'fixed'):
             self.set_axis_value(joint=joint)
+        self.set_joint_limits(joint=joint)
 
     def convert_fusion_joint_type_to_URDF(self, joint: adsk.fusion.AsBuiltJoint) -> str:
         joint_type = joint.jointMotion.jointType
@@ -27,6 +28,16 @@ class Joint(Element):
                 return 'continuous'
         else:
             return 'fixed'
+        
+    def set_joint_limits(self, joint: adsk.fusion.AsBuiltJoint):
+        if(joint.jointMotion.jointType == adsk.fusion.JointTypes.RevoluteJointType):
+            joint_motion = adsk.fusion.RevoluteJointMotion.cast(joint.jointMotion)
+            if(joint_motion.rotationLimits.isMaximumValueEnabled == True) and (joint_motion.rotationLimits.isMinimumValueEnabled == True):
+                self.__limit = Element("limit", attrib={"lower": f'{round(joint_motion.rotationLimits.minimumValue, 6)}',
+                                                        "upper": f'{round(joint_motion.rotationLimits.maximumValue, 6)}',
+                                                        "effort": '1000.0',
+                                                        "velocity": '1.0',})
+                self.append(self.__limit)
         
     def set_axis_value(self, joint: adsk.fusion.AsBuiltJoint):
         axis_vector = joint.geometry.primaryAxisVector.asArray()
@@ -53,7 +64,7 @@ class Joint(Element):
 
     def set_xyz_value(self, xyz):
         if type(xyz) == list:
-            xyz = f"{round(xyz[0] /1000, 6)} {round(xyz[1] /1000, 6)} {round(xyz[2] /1000, 6)}"
+            xyz = f"{round(xyz[0] /100, 6)} {round(xyz[1] /100, 6)} {round(xyz[2] /100, 6)}"
         self.__origin.attrib["xyz"] = xyz
 
     def set_rpy_value(self, rpy):
