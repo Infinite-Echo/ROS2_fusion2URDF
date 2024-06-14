@@ -24,7 +24,6 @@ class URDF(ElementTree):
         self.app = app
         design = adsk.fusion.Design.cast(self.app.activeProduct)
         self.stl_export_manager = design.exportManager
-
         # Create Xacro constant for package_name
         self.getroot().append(Element('xacro:property', attrib={'name':'package_name', 'value':self.package_name}))
         os.makedirs(f'{self.export_path}/{self.package_name}/src/meshes', exist_ok=True)
@@ -79,19 +78,24 @@ class URDF(ElementTree):
             -If a joint is not rigid, the child link's properties must be offset because the joint's geometry origin is used instead of the child link's origin
                 -Additionally, when a new joint references a link whose parent joint is non-rigid, the new joint's origin starts from the parent joints origin not the link's origin
         '''
+
         if(parent_joint != None) and (parent_joint.jointMotion.jointType != adsk.fusion.JointTypes.RigidJointType):
             parent_link_tf = get_occurrence_tf(parent_link)
-            parent_joint_tf = parent_link_tf.copy()
             parent_joint_xyz = parent_joint.geometry.origin.asArray()
-            parent_joint_tf[0:3, 3] = parent_joint_xyz
-            child_link_tf = get_occurrence_tf(child_link)
-            child_joint_tf = np.dot(np.linalg.inv(parent_joint_tf), child_link_tf)
-            new_link.set_from_tf(np.dot(np.linalg.inv(child_joint_tf), child_link_tf))
+            parent_link_tf[0:3, 3] = parent_joint_xyz
         else:
             parent_link_tf = get_occurrence_tf(parent_link)
-            child_link_tf = get_occurrence_tf(child_link)
-            child_joint_tf = np.dot(np.linalg.inv(parent_link_tf), child_link_tf)
             
+        child_link_tf = get_occurrence_tf(child_link)
+        if(child_joint.jointMotion.jointType != adsk.fusion.JointTypes.RigidJointType):
+            tf = get_occurrence_tf(child_link)
+            child_joint_xyz = child_joint.geometry.origin.asArray()
+            tf[0:3, 3] = child_joint_xyz
+            child_joint_tf = np.dot(np.linalg.inv(parent_link_tf), tf)
+            new_link.set_xyz(tf_to_xyz_str(np.dot(np.linalg.inv(tf), child_link_tf)))
+        else:
+            child_joint_tf = np.dot(np.linalg.inv(parent_link_tf), child_link_tf)
+
         new_joint.set_from_tf(child_joint_tf)
         physical_properties = child_link.getPhysicalProperties(adsk.fusion.CalculationAccuracy.VeryHighCalculationAccuracy)
         mass = physical_properties.mass
