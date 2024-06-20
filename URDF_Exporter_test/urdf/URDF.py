@@ -30,22 +30,11 @@ class URDF(ElementTree):
 
     def create_base_link(self, base_link_occ: adsk.fusion.Occurrence):
         base_link_occ.component.name = 'base'
-        base_link = Link('base')
+        base_link = Link('base', app=self.app)
         tf = get_occurrence_tf(base_link_occ)
         tf[0:3, 3] = 0.0
         base_link.set_from_tf(tf=tf)
-        physical_properties = base_link_occ.component.getPhysicalProperties(adsk.fusion.CalculationAccuracy.VeryHighCalculationAccuracy)
-        mass = physical_properties.mass
-        moment_of_inertia_tuple = physical_properties.getXYZMomentsOfInertia()
-        inertia_dict = {
-            "ixx":f'{moment_of_inertia_tuple[1] * (10**-4)}',
-            "iyy":f'{moment_of_inertia_tuple[2] * (10**-4)}',
-            "izz":f'{moment_of_inertia_tuple[3] * (10**-4)}',
-            "ixy":f'{moment_of_inertia_tuple[4] * (10**-4)}',
-            "iyz":f'{moment_of_inertia_tuple[5] * (10**-4)}',
-            "ixz":f'{moment_of_inertia_tuple[6] * (10**-4)}'
-        }
-        base_link.set_inertial(mass=mass, xyz="0.0 0.0 0.0", inertia_dict=inertia_dict)
+        base_link.set_inertial(base_link_occ)
         self.append_link(base_link)
         self.export_stl(base_link_occ)
 
@@ -61,14 +50,12 @@ class URDF(ElementTree):
         parent_link_tf = None
         child_link_tf = None
         child_joint_tf = None
-        parent_joint_tf = None
 
         #create new link for child
-        new_link = Link(parse_occ_name(child_link))
+        new_link = Link(parse_occ_name(child_link), app=self.app) # Initializes all xyz, rpy values to 0
         new_joint = Joint(parse_name(child_joint.name), child_joint)
         new_joint.set_child_value(parse_occ_name(child_link))
         new_joint.set_parent_value(parse_occ_name(parent_link))
-        
         
         '''
         Important Notes:
@@ -92,23 +79,12 @@ class URDF(ElementTree):
             child_joint_xyz = child_joint.geometry.origin.asArray()
             tf[0:3, 3] = child_joint_xyz
             child_joint_tf = np.dot(np.linalg.inv(parent_link_tf), tf)
-            new_link.set_xyz(tf_to_xyz_str(np.dot(np.linalg.inv(tf), child_link_tf)))
+            new_link.set_xyz(tf_to_xyz_str(np.dot(np.linalg.inv(tf), child_link_tf))) # Set offsets in link since joint is non-rigid
         else:
             child_joint_tf = np.dot(np.linalg.inv(parent_link_tf), child_link_tf)
 
         new_joint.set_from_tf(child_joint_tf)
-        physical_properties = child_link.component.getPhysicalProperties(adsk.fusion.CalculationAccuracy.VeryHighCalculationAccuracy)
-        mass = physical_properties.mass
-        moment_of_inertia_tuple = physical_properties.getXYZMomentsOfInertia()
-        inertia_dict = {
-            "ixx":f'{moment_of_inertia_tuple[1] * (10**-4)}',
-            "iyy":f'{moment_of_inertia_tuple[2] * (10**-4)}',
-            "izz":f'{moment_of_inertia_tuple[3] * (10**-4)}',
-            "ixy":f'{moment_of_inertia_tuple[4] * (10**-4)}',
-            "iyz":f'{moment_of_inertia_tuple[5] * (10**-4)}',
-            "ixz":f'{moment_of_inertia_tuple[6] * (10**-4)}'
-        }
-        new_link.set_inertial(mass=mass, xyz="0.0 0.0 0.0", inertia_dict=inertia_dict)
+        new_link.set_inertial(child_link)
         self.append_link(new_link)
         self.append_joint(new_joint)
         self.export_stl(child_link)
