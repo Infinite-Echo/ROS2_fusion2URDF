@@ -10,7 +10,7 @@ def get_occurrence_tf(occurrence: adsk.fusion.Occurrence) -> np.ndarray[(4,4), n
     return tf_mat
 
 def tf_to_xyz_str(tf: np.ndarray[(4,4), np.dtype[any]]) -> str:
-    xyz_str = f'{round((tf[0, 3] / 100), 6)} {round((tf[1, 3] / 100), 6)} {round((tf[2, 3] / 100), 6)}'
+    xyz_str = f'{(tf[0, 3] / 100):.10e} {(tf[1, 3] / 100):.10e} {(tf[2, 3] / 100):.10e}'
     return xyz_str
 
 def tf_to_rpy_str(tf: np.ndarray[(4,4), np.dtype[any]]) -> str:

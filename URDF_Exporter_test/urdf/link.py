@@ -6,8 +6,9 @@ import adsk, adsk.core, adsk.fusion, traceback
 from .urdf_utils import get_occurrence_tf, tf_to_rpy_str, tf_to_xyz_str
 
 class Link(Element):
-    def __init__(self, name: str) -> None:
+    def __init__(self, name: str, app: adsk.core.Application) -> None:
         super().__init__("link", attrib={"name": f"{name}_link"})
+        self.app = app
         self.inertial = Inertial()
         self.visual = Visual()
         self.collision = Collision()
@@ -16,12 +17,34 @@ class Link(Element):
         self.append(self.collision)
         self.set_mesh_filepath(filepath=f'file://$(find ${{package_name}})/src/meshes/{name}.stl')
 
-    def set_inertial(self, mass, xyz: str, inertia_dict: dict[str, str]):
+    def set_inertial(self, link_occ: adsk.fusion.Occurrence):
+        physical_properties = link_occ.component.getPhysicalProperties(adsk.fusion.CalculationAccuracy.VeryHighCalculationAccuracy)
+        mass = physical_properties.mass
         self.inertial.set_mass_value(mass=mass)
-        self.inertial.set_xyz_value(xyz=xyz)
+        offset_xyz = [(float(i)) for i in self.inertial.get_xyz_value().split()]
+        center_of_mass = [_/100.0 for _ in physical_properties.centerOfMass.asArray()] ## cm to m
+        (_, xx, yy, zz, xy, yz, xz) = physical_properties.getXYZMomentsOfInertia()
+        moment_inertia_world = [_ / 10000.0 for _ in [xx, yy, zz, xy, yz, xz] ] ## kg / cm^2 -> kg/m^2
+        x = center_of_mass[0]
+        y = center_of_mass[1]
+        z = center_of_mass[2]
+        inertia_xyz = [x + offset_xyz[0], y + offset_xyz[1], z + offset_xyz[2]]
+        self.inertial.set_xyz_value(f'{inertia_xyz[0]:.10e} {inertia_xyz[1]:.10e} {inertia_xyz[2]:.10e}')
+        translation_matrix = [y**2+z**2, x**2+z**2, x**2+y**2,
+                            -x*y, -y*z, -x*z]
+        inertia = [ (i - mass*t) for i, t in zip(moment_inertia_world, translation_matrix)]
+        inertia_dict = {
+            "ixx":f'{inertia[0]:.10e}',
+            "iyy":f'{inertia[1]:.10e}',
+            "izz":f'{inertia[2]:.10e}',
+            "ixy":f'{inertia[3]:.10e}',
+            "iyz":f'{inertia[4]:.10e}',
+            "ixz":f'{inertia[5]:.10e}'
+        }
         self.inertial.set_inertia_values(inertia_dict=inertia_dict)
 
     def set_xyz(self, xyz: str):
+        self.inertial.set_xyz_value(xyz=xyz)
         self.visual.set_xyz_value(xyz=xyz)
         self.collision.set_xyz_value(xyz=xyz)
 
@@ -53,7 +76,7 @@ class LinkElement(Element):
 
     def set_xyz_value(self, xyz):
         if type(xyz) == list:
-            xyz = f"{round(xyz[0] /100, 6)} {round(xyz[1] /100, 6)} {round(xyz[2] /100, 6)}"
+            xyz = f"{(xyz[0] /100):.10e} {(xyz[1] /100):.10e} {(xyz[2] /100):.10e}"
         self.__origin.attrib["xyz"] = xyz
 
     def set_rpy_value(self, rpy):
@@ -120,5 +143,5 @@ class Inertial(LinkElement):
 
     def set_mass_value(self, mass) -> None:
         if type(mass) != str:
-            mass = str(mass)
+            mass = f'{mass:.10e}'
         self.__mass.attrib["value"] = mass
