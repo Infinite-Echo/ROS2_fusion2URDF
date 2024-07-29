@@ -6,7 +6,10 @@ from .urdf_utils import get_occurrence_tf, tf_to_rpy_str, tf_to_xyz_str
 
 class Joint(Element):
     def __init__(self, name: str, joint: adsk.fusion.AsBuiltJoint):
-        joint_type = self.convert_fusion_joint_type_to_URDF(joint=joint)
+        if name == 'base':
+            joint_type = 'fixed'
+        else:
+            joint_type = self.convert_fusion_joint_type_to_URDF(joint=joint)
         super().__init__("joint", attrib={"name": f"{name}_joint", "type": joint_type})
         self.__origin = Element("origin", attrib={"xyz": "0 0 0", "rpy": "0 0 0"})
         self.__parent = Element("parent", attrib={"link": ""})
@@ -16,7 +19,7 @@ class Joint(Element):
         self.append(self.__child)
         if(joint_type != 'fixed'):
             self.set_axis_value(joint=joint)
-        self.set_joint_limits(joint=joint)
+            self.set_joint_limits(joint=joint)
 
     def convert_fusion_joint_type_to_URDF(self, joint: adsk.fusion.AsBuiltJoint) -> str:
         joint_type = joint.jointMotion.jointType
@@ -56,11 +59,17 @@ class Joint(Element):
     def get_rpy_value(self):
         return self.__origin.attrib["rpy"]
 
-    def set_parent_value(self, parent_link: str):
-        self.__parent.attrib["link"] = f'{parent_link}_link'
+    def set_parent_value(self, parent_link: str, override_suffix: bool = False):
+        if override_suffix:
+            self.__parent.attrib["link"] = f'{parent_link}'
+        else:
+            self.__parent.attrib["link"] = f'{parent_link}_link'
 
-    def set_child_value(self, child_link: str):
-        self.__child.attrib["link"] = f'{child_link}_link'
+    def set_child_value(self, child_link: str, override_suffix: bool = False):
+        if override_suffix:
+            self.__child.attrib["link"] = f'{child_link}'
+        else:
+            self.__child.attrib["link"] = f'{child_link}_link'
 
     def set_xyz_value(self, xyz):
         if type(xyz) == list:

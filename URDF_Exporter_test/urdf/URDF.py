@@ -28,15 +28,33 @@ class URDF(ElementTree):
         self.getroot().append(Element('xacro:property', attrib={'name':'package_name', 'value':self.package_name}))
         os.makedirs(f'{self.export_path}/{self.package_name}/src/meshes', exist_ok=True)
 
-    def create_base_link(self, base_link_occ: adsk.fusion.Occurrence):
+    def create_base_link(self, base_link_occ: adsk.fusion.Occurrence, base_footprint: adsk.fusion.ConstructionPoint = None):
         base_link_occ.component.name = 'base'
         base_link = Link('base', app=self.app)
         tf = get_occurrence_tf(base_link_occ)
         tf[0:3, 3] = 0.0
         base_link.set_from_tf(tf=tf)
         base_link.set_inertial(base_link_occ)
+        base_link.visual.set_material(base_link_occ)
         self.append_link(base_link)
+        if base_footprint != None:
+            self.create_base_footprint(base_link_occ, base_footprint)
         self.export_stl(base_link_occ)
+
+    def create_base_footprint(self, base_link_occ: adsk.fusion.Occurrence, base_footprint: adsk.fusion.ConstructionPoint):
+        base_footprint_link = Element('link', attrib={"name": f"base_footprint"})
+        base_joint = Joint('base', None)
+        base_joint.set_parent_value(parent_link='base_footprint', override_suffix=True)
+        base_joint.set_child_value(child_link='base')
+
+        base_link_tf = get_occurrence_tf(base_link_occ)
+        base_footprint_tf = np.identity(4, dtype=np.float32)
+        base_footprint_tf[0:3,3] = base_footprint.geometry.asArray()
+        tf = np.dot(np.linalg.inv(base_footprint_tf), base_link_tf)
+        base_joint.set_from_tf(tf=tf)
+        self.append_link(base_footprint_link)
+        self.append_joint(base_joint)
+        return
 
     def traverse_link(self, parent_link: adsk.fusion.Occurrence, parent_joint: adsk.fusion.AsBuiltJoint = None):
         for joint in parent_link.asBuiltJoints:
@@ -85,6 +103,7 @@ class URDF(ElementTree):
 
         new_joint.set_from_tf(child_joint_tf)
         new_link.set_inertial(child_link)
+        new_link.visual.set_material(child_link)
         self.append_link(new_link)
         self.append_joint(new_joint)
         self.export_stl(child_link)
