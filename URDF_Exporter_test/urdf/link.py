@@ -98,6 +98,15 @@ class Visual(LinkElement):
 
     def set_mesh_filepath(self, filepath: str):
         self.__mesh.attrib["filename"] = filepath
+    
+    def set_material(self, link_occ: adsk.fusion.Occurrence):
+        material = link_occ.component.material
+        color = adsk.core.ColorProperty.cast(material.appearance.appearanceProperties.itemByName('Color'))
+        rgba_values = color.value.getColor()
+        self.__material = Element("material", attrib={"name": f'{material.name.replace(" ", "_")}'})
+        self.__color = Element("color", attrib={"rgba": f'{rgba_values[1]/255} {rgba_values[2]/255} {rgba_values[3]/255} {rgba_values[4]/255}'})
+        self.__material.append(self.__color)
+        self.append(self.__material)
 
 
 class Collision(LinkElement):

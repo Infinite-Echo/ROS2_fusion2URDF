@@ -95,6 +95,10 @@ class ExportUrdfCommandCreaterHandler(adsk.core.CommandCreatedEventHandler):
 
             robot_name_input = inputs.addStringValueInput('robot_name_string_input', 'Robot Name', '')
 
+            base_footprint_selection_input = inputs.addSelectionInput('base_footprint_selection', 'Select Base Footprint', 'Select a point to be base_footprint')
+            base_footprint_selection_input.setSelectionLimits(minimum=0, maximum=1)
+            base_footprint_selection_input.addSelectionFilter("ConstructionPoints")
+
             base_link_selection_input = inputs.addSelectionInput('base_link_selection', 'Select Base Link', 'Select a component to be base_link')
             base_link_selection_input.setSelectionLimits(minimum=1, maximum=1)
             base_link_selection_input.addSelectionFilter("Occurrences")
@@ -117,6 +121,12 @@ class ExportUrdfCommandExecuteHandler(adsk.core.CommandEventHandler):
             # Get the command inputs
             inputs = cmd.commandInputs
 
+            base_footprint_selection_input = adsk.core.SelectionCommandInput.cast(inputs.itemById('base_footprint_selection'))
+            if base_footprint_selection_input.selectionCount != 0:
+                base_footprint = adsk.fusion.ConstructionPoint.cast(base_footprint_selection_input.selection(0).entity)
+            else:
+                base_footprint = None
+
             base_link_selection_input = adsk.core.SelectionCommandInput.cast(inputs.itemById('base_link_selection'))
             base_link = adsk.fusion.Occurrence.cast(base_link_selection_input.selection(0).entity)
 
@@ -124,7 +134,7 @@ class ExportUrdfCommandExecuteHandler(adsk.core.CommandEventHandler):
             export_path = adsk.core.TextBoxCommandInput.cast(inputs.itemById('export_path_display')).text
             generate_robot_description_pkg(export_path=export_path, robot_name=robot_name)
             urdf = URDF(robot_name=robot_name, export_path=export_path, app=_app)
-            urdf.create_base_link(base_link_occ=base_link)
+            urdf.create_base_link(base_link_occ=base_link, base_footprint=base_footprint)
             urdf.traverse_link(parent_link=base_link, parent_joint=None)
             urdf.export()
             _app.log(f'Export Finished')
