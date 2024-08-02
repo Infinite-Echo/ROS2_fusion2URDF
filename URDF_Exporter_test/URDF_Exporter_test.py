@@ -47,8 +47,12 @@ class ExportUrdfCommandInputChangedHandler(adsk.core.InputChangedEventHandler):
                     _app.log(f'Export Path Selected: {export_path_dialog.folder}')
                     new_path = f'<div align="left">{export_path_dialog.folder}</div>'
                     current_export_path_input.formattedText = new_path
-
-
+            elif '_coefficient_' in cmdInput.id:
+                coefficient_input = adsk.core.StringValueCommandInput.cast(cmdInput)
+                if coefficient_input.value.isnumeric() or coefficient_input.value.replace('.', '', 1).isnumeric():
+                    coefficient_input.isValueError = False
+                else:
+                    coefficient_input.isValueError = True
         except:
             _ui.messageBox('Failed:\n{}'.format(traceback.format_exc()))
 
@@ -93,18 +97,51 @@ class ExportUrdfCommandCreaterHandler(adsk.core.CommandCreatedEventHandler):
             # Get the CommandInputs collection associated with the command.
             inputs = cmd.commandInputs
 
-            robot_name_input = inputs.addStringValueInput('robot_name_string_input', 'Robot Name', '')
+            basic_tab = inputs.addTabCommandInput('basic_tab', 'Basic')
+            basic_tab_inputs = basic_tab.children
 
-            base_footprint_selection_input = inputs.addSelectionInput('base_footprint_selection', 'Select Base Footprint', 'Select a point to be base_footprint')
-            base_footprint_selection_input.setSelectionLimits(minimum=0, maximum=1)
-            base_footprint_selection_input.addSelectionFilter("ConstructionPoints")
+            advanced_tab = inputs.addTabCommandInput('advanced_tab', 'Advanced')
+            advanced_tab_inputs = advanced_tab.children
 
-            base_link_selection_input = inputs.addSelectionInput('base_link_selection', 'Select Base Link', 'Select a component to be base_link')
+            ### Basic
+            # Get Robot Name
+            robot_name_input = basic_tab_inputs.addStringValueInput('robot_name_string_input', 'Robot Name', '')
+
+            # Select Component to Use as Base Link
+            base_link_selection_input = basic_tab_inputs.addSelectionInput('base_link_selection', 'Select Base Link', 'Select a component to be base_link')
             base_link_selection_input.setSelectionLimits(minimum=1, maximum=1)
             base_link_selection_input.addSelectionFilter("Occurrences")
 
-            export_path_button_input = inputs.addBoolValueInput('export_path_button_input', 'Export Path', False, 'resources/EllipsisButton', True)  
-            export_path_display = inputs.addTextBoxCommandInput('export_path_display', '', '', 1, True)
+            # Select the Export Path for the Package
+            export_path_button_input = basic_tab_inputs.addBoolValueInput('export_path_button_input', 'Export Path', False, 'resources/EllipsisButton', True)  
+            export_path_display = basic_tab_inputs.addTextBoxCommandInput('export_path_display', '', '', 1, True)
+            
+            ### Advanced - Optional
+            # Select Point to Use as Base Footprint
+            base_footprint_selection_input = advanced_tab_inputs.addSelectionInput('base_footprint_selection', 'Select Base Footprint', 'Select a point to be base_footprint')
+            base_footprint_selection_input.setSelectionLimits(minimum=0, maximum=1)
+            base_footprint_selection_input.addSelectionFilter("ConstructionPoints")
+
+            # Use Material Contact Coefficients
+            material_contact_coef_group = advanced_tab_inputs.addGroupCommandInput('material_contact_coefficient_group', 'Set Material Contact Coefficients')
+            material_contact_coef_group_inputs = material_contact_coef_group.children
+            contact_coef_table = material_contact_coef_group_inputs.addTableCommandInput('contact_coefficient_table', 'Material Contact Coefficients', 4, '1:1:1:1')
+            contact_coef_table_inputs = adsk.core.CommandInputs.cast(contact_coef_table.commandInputs)
+
+            design = adsk.fusion.Design.cast(_app.activeProduct)
+            for i in range(design.materials.count):
+                material_name_input = contact_coef_table_inputs.addStringValueInput('material_name_input_{}'.format(str(i)), 'Material Name', design.materials.item(i).name.replace(" ", "_"))
+                material_name_input.isReadOnly = True
+                friction_coef_input = contact_coef_table_inputs.addStringValueInput('friction_coefficient_input_{}'.format(str(i)), 'Friction Coefficient', '0.0')
+                friction_coef_input.tooltip = 'Friction Coefficient (float)'
+                stiffness_coef_input = contact_coef_table_inputs.addStringValueInput('stiffness_coefficient_input_{}'.format(str(i)), 'Stiffness Coefficient', '0.0')
+                stiffness_coef_input.tooltip = 'Stiffness Coefficient (float)'
+                dampening_coef_input = contact_coef_table_inputs.addStringValueInput('dampening_coefficient_input_{}'.format(str(i)), 'Dampening Coefficient', '0.0')
+                dampening_coef_input.tooltip = 'Dampening Coefficient (float)'
+                contact_coef_table.addCommandInput(material_name_input, i, 0)
+                contact_coef_table.addCommandInput(friction_coef_input, i, 1)
+                contact_coef_table.addCommandInput(stiffness_coef_input, i, 2)
+                contact_coef_table.addCommandInput(dampening_coef_input, i, 3)
 
         except:
             _ui.messageBox('Failed:\n{}'.format(traceback.format_exc()))
@@ -132,8 +169,9 @@ class ExportUrdfCommandExecuteHandler(adsk.core.CommandEventHandler):
 
             robot_name = adsk.core.StringValueCommandInput.cast(inputs.itemById('robot_name_string_input')).value
             export_path = adsk.core.TextBoxCommandInput.cast(inputs.itemById('export_path_display')).text
+            material_table = adsk.core.TableCommandInput.cast(inputs.itemById('contact_coefficient_table'))
             generate_robot_description_pkg(export_path=export_path, robot_name=robot_name)
-            urdf = URDF(robot_name=robot_name, export_path=export_path, app=_app)
+            urdf = URDF(robot_name=robot_name, export_path=export_path, app=_app, material_table=material_table)
             urdf.create_base_link(base_link_occ=base_link, base_footprint=base_footprint)
             urdf.traverse_link(parent_link=base_link, parent_joint=None)
             urdf.export()
