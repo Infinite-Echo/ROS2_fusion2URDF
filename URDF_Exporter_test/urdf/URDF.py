@@ -1,6 +1,7 @@
 from .link import Link
 from .joint import Joint
 from .urdf_utils import get_occurrence_tf, tf_to_rpy_str, tf_to_xyz_str, get_joint_child_occ, parse_occ_name, parse_name
+from ..simulation.materials import Mats
 from xml.etree.ElementTree import ElementTree, Element, SubElement
 import xml.etree.ElementTree as ET
 import xml.dom.minidom
@@ -11,7 +12,7 @@ import os, sys
 
 
 class URDF(ElementTree):
-    def __init__(self, robot_name: str, export_path: str, app: adsk.core.Application):
+    def __init__(self, robot_name: str, export_path: str, app: adsk.core.Application, material_table: adsk.core.TableCommandInput):
         super().__init__(
             element=Element(
                 "robot",
@@ -19,10 +20,11 @@ class URDF(ElementTree):
             )
         )
         self.package_name = f'{robot_name}_description'
-        self.export_path = export_path
         self.robot_name = robot_name
+        self.export_path = export_path
         self.app = app
         design = adsk.fusion.Design.cast(self.app.activeProduct)
+        self._materials = Mats(robot_name=robot_name, design=design, material_table=material_table, app=app)
         self.stl_export_manager = design.exportManager
         # Create Xacro constant for package_name
         self.getroot().append(Element('xacro:property', attrib={'name':'package_name', 'value':self.package_name}))
@@ -127,6 +129,10 @@ class URDF(ElementTree):
         os.makedirs(f'{self.export_path}/{self.package_name}/src/urdf', exist_ok=True)
         with open(f'{self.export_path}/{self.package_name}/src/urdf/{self.robot_name}.xacro', 'w') as file:
             file.write(formatted_xml)
+        xml_string = ET.tostring(self._materials.getroot(), 'utf-8')
+        formatted_xml = self.prettify_urdf(xml_string=xml_string)
+        with open(f'{self.export_path}/{self.package_name}/src/urdf/materials.xacro', 'w') as file:
+            file.write(formatted_xml)
 
     def prettify_urdf(self, xml_string):
         """Return a pretty-printed XML string for the given URDF."""
@@ -137,7 +143,7 @@ class URDF(ElementTree):
         lines = pretty_xml.split('\n')
         new_lines = []
         for line in lines:
-            if (line.strip() == '</link>') or (line.strip() == '</joint>') or (line.strip().startswith('<xacro:property')):
+            if (line.strip() == '</link>') or (line.strip() == '</joint>') or (line.strip().startswith('</xacro:property')) or (line.strip().startswith('</xacro:macro')):
                 new_lines.append(f'{line}\n')
             else:
                 new_lines.append(line)
