@@ -20,6 +20,7 @@ class Mats(ElementTree):
         self._design = design
         self._mat_table = material_table
         self._app = app
+        self._existing_contact_coefficients = []
         for i in range(design.materials.count):
             self.add_new_material(design.materials.item(i))
         self.create_coefficients(material_table)
@@ -44,7 +45,11 @@ class Mats(ElementTree):
                 else:
                     attrib_dict[col_to_attrib_name(j)] = table_entry.value
             if len(attrib_dict) > 0:
-                contact_coefs_macro = Element('xacro:property', attrib={"name":f"{material_table.getInputAtPosition(i,0).value}_contact_coefficients"})
+                name = f"{material_table.getInputAtPosition(i,0).value}_contact_coefficients"
+                contact_coefs_prop = Element('xacro:property', attrib={"name":name})
+                self._existing_contact_coefficients.append(name.removesuffix('_contact_coefficients'))
                 contact_coefs = Element('contact_coefficients', attrib=attrib_dict)
-                contact_coefs_macro.append(contact_coefs)
-                self.getroot().append(contact_coefs_macro)
+                contact_coefs_prop.append(contact_coefs)
+                self.getroot().append(contact_coefs_prop)
+        existing_contact_coefficients_element = Element('xacro:property', attrib={"name":"existing_contact_coefficients", "value":f"{self._existing_contact_coefficients}"})
+        self.getroot().append(existing_contact_coefficients_element)

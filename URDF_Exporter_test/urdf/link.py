@@ -43,6 +43,10 @@ class Link(Element):
         }
         self.inertial.set_inertia_values(inertia_dict=inertia_dict)
 
+    def set_materials(self, link_occ: adsk.fusion.Occurrence):
+        self.visual.set_material(link_occ)
+        self.collision.set_contact_coefficients(link_occ)
+
     def set_xyz(self, xyz: str):
         self.inertial.set_xyz_value(xyz=xyz)
         self.visual.set_xyz_value(xyz=xyz)
@@ -101,11 +105,8 @@ class Visual(LinkElement):
     
     def set_material(self, link_occ: adsk.fusion.Occurrence):
         material = link_occ.component.material
-        color = adsk.core.ColorProperty.cast(material.appearance.appearanceProperties.itemByName('Color'))
-        rgba_values = color.value.getColor()
-        self.__material = Element("material", attrib={"name": f'{material.name.replace(" ", "_")}'})
-        self.__color = Element("color", attrib={"rgba": f'{rgba_values[1]/255} {rgba_values[2]/255} {rgba_values[3]/255} {rgba_values[4]/255}'})
-        self.__material.append(self.__color)
+        material_name = f'{material.name.replace(" ", "_")}'
+        self.__material = Element("material", attrib={"name":material_name})
         self.append(self.__material)
 
 
@@ -122,6 +123,15 @@ class Collision(LinkElement):
 
     def set_mesh_filepath(self, filepath: str):
         self.__mesh.attrib["filename"] = filepath
+
+    def set_contact_coefficients(self, link_occ: adsk.fusion.Occurrence):
+        material = link_occ.component.material
+        material_name = f'{material.name.replace(" ", "_")}'
+        self.__contact_coefficients = Element("xacro:if", 
+            attrib={"value":f"${{'{material_name}' in existing_contact_coefficients}}"})
+        self.__contact_coefficients.append(Element("xacro:insert_block", attrib={"name":f'{material_name}_contact_coefficients'}))
+        self.append(self.__contact_coefficients)
+
 
 
 class Inertial(LinkElement):
