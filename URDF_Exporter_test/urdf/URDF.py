@@ -2,6 +2,7 @@ from .link import Link
 from .joint import Joint
 from .urdf_utils import get_occurrence_tf, tf_to_rpy_str, tf_to_xyz_str, get_joint_child_occ, parse_occ_name, parse_name
 from ..simulation.materials import Mats
+from ..simulation.gazebo import GazeboXacro, GazeboReference, GazeboPlugin
 from xml.etree.ElementTree import ElementTree, Element, SubElement
 import xml.etree.ElementTree as ET
 import xml.dom.minidom
@@ -28,6 +29,7 @@ class URDF(ElementTree):
         self.stl_export_manager = design.exportManager
         # Create Xacro constant for package_name
         self.getroot().append(Element('xacro:property', attrib={'name':'package_name', 'value':self.package_name}))
+        self.getroot().append(Element('xacro:include', attrib={'filename':f'$(find ${{package_name}})/src/urdf/materials.xacro'}))
         os.makedirs(f'{self.export_path}/{self.package_name}/src/meshes', exist_ok=True)
 
     def create_base_link(self, base_link_occ: adsk.fusion.Occurrence, base_footprint: adsk.fusion.ConstructionPoint = None):
@@ -105,7 +107,7 @@ class URDF(ElementTree):
 
         new_joint.set_from_tf(child_joint_tf)
         new_link.set_inertial(child_link)
-        new_link.visual.set_material(child_link)
+        new_link.set_materials(child_link)
         self.append_link(new_link)
         self.append_joint(new_joint)
         self.export_stl(child_link)
