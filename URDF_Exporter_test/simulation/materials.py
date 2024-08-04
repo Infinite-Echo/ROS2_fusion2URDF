@@ -1,10 +1,7 @@
-from xml.etree.ElementTree import ElementTree, Element, SubElement
-import xml.etree.ElementTree as ET
-import xml.dom.minidom
-import numpy as np
-from scipy.spatial.transform.rotation import Rotation as R
+from xml.etree.ElementTree import ElementTree, Element
 import adsk, adsk.core, adsk.fusion, traceback
-import os, sys
+import numpy as np
+from ..urdf import xacro as X
 
 def col_to_attrib_name(col_num: int):
     if col_num == 1:
@@ -21,8 +18,12 @@ class Mats(ElementTree):
         self._mat_table = material_table
         self._app = app
         self._existing_contact_coefficients = []
+        materials_list = []
         for i in range(design.materials.count):
-            self.add_new_material(design.materials.item(i))
+            material_name = design.materials.item(i).name
+            if material_name not in materials_list:
+                materials_list.append(material_name)
+                self.add_new_material(design.materials.item(i))
         self.create_coefficients(material_table)
 
     def add_new_material(self, material: adsk.core.Material):
@@ -46,10 +47,10 @@ class Mats(ElementTree):
                     attrib_dict[col_to_attrib_name(j)] = table_entry.value
             if len(attrib_dict) > 0:
                 name = f"{material_table.getInputAtPosition(i,0).value}_contact_coefficients"
-                contact_coefs_prop = Element('xacro:property', attrib={"name":name})
+                contact_coefs_prop = X.PropertyBlock(name)
                 self._existing_contact_coefficients.append(name.removesuffix('_contact_coefficients'))
                 contact_coefs = Element('contact_coefficients', attrib=attrib_dict)
                 contact_coefs_prop.append(contact_coefs)
                 self.getroot().append(contact_coefs_prop)
-        existing_contact_coefficients_element = Element('xacro:property', attrib={"name":"existing_contact_coefficients", "value":f"{self._existing_contact_coefficients}"})
+        existing_contact_coefficients_element = X.Property('existing_contact_coefficients', f"{self._existing_contact_coefficients}")
         self.getroot().append(existing_contact_coefficients_element)

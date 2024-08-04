@@ -10,10 +10,10 @@ import numpy as np
 from scipy.spatial.transform.rotation import Rotation as R
 import adsk, adsk.core, adsk.fusion, traceback
 import os, sys
-
+from . import xacro as X
 
 class URDF(ElementTree):
-    def __init__(self, robot_name: str, export_path: str, app: adsk.core.Application, material_table: adsk.core.TableCommandInput):
+    def __init__(self, robot_name: str, export_path: str, app: adsk.core.Application, inputs: adsk.core.CommandInputs):
         super().__init__(
             element=Element(
                 "robot",
@@ -25,11 +25,14 @@ class URDF(ElementTree):
         self.export_path = export_path
         self.app = app
         design = adsk.fusion.Design.cast(self.app.activeProduct)
+        self._inputs = inputs
+        self._material_table = material_table = adsk.core.TableCommandInput.cast(self._inputs.itemById('contact_coefficient_table'))
         self._materials = Mats(robot_name=robot_name, design=design, material_table=material_table, app=app)
+        self._gazebo = GazeboXacro(robot_name=robot_name, design=design, app=app)
         self.stl_export_manager = design.exportManager
-        # Create Xacro constant for package_name
-        self.getroot().append(Element('xacro:property', attrib={'name':'package_name', 'value':self.package_name}))
-        self.getroot().append(Element('xacro:include', attrib={'filename':f'$(find ${{package_name}})/src/urdf/materials.xacro'}))
+        self.getroot().append(X.Property('package_name', self.package_name))
+        self.getroot().append(X.Include(f'$(find ${{package_name}})/src/urdf/materials.xacro'))
+        self.getroot().append(X.Include(f'$(find ${{package_name}})/src/urdf/gazebo.xacro'))
         os.makedirs(f'{self.export_path}/{self.package_name}/src/meshes', exist_ok=True)
 
     def create_base_link(self, base_link_occ: adsk.fusion.Occurrence, base_footprint: adsk.fusion.ConstructionPoint = None):
@@ -126,14 +129,15 @@ class URDF(ElementTree):
         del(stl_options)
 
     def export(self):
-        xml_string = ET.tostring(self.getroot(), 'utf-8')
-        formatted_xml = self.prettify_urdf(xml_string=xml_string)
         os.makedirs(f'{self.export_path}/{self.package_name}/src/urdf', exist_ok=True)
-        with open(f'{self.export_path}/{self.package_name}/src/urdf/{self.robot_name}.xacro', 'w') as file:
-            file.write(formatted_xml)
-        xml_string = ET.tostring(self._materials.getroot(), 'utf-8')
+        self.write_xml_to_file(self.getroot(), f'{self.export_path}/{self.package_name}/src/urdf/{self.robot_name}.xacro')
+        self.write_xml_to_file(self._materials.getroot(), f'{self.export_path}/{self.package_name}/src/urdf/materials.xacro')
+        self.write_xml_to_file(self._gazebo.getroot(), f'{self.export_path}/{self.package_name}/src/urdf/gazebo.xacro')
+        
+    def write_xml_to_file(self, root_element: Element, filepath: str):
+        xml_string = ET.tostring(root_element, 'utf-8')
         formatted_xml = self.prettify_urdf(xml_string=xml_string)
-        with open(f'{self.export_path}/{self.package_name}/src/urdf/materials.xacro', 'w') as file:
+        with open(filepath, 'w') as file:
             file.write(formatted_xml)
 
     def prettify_urdf(self, xml_string):
@@ -145,9 +149,12 @@ class URDF(ElementTree):
         lines = pretty_xml.split('\n')
         new_lines = []
         for line in lines:
-            if (line.strip() == '</link>') or (line.strip() == '</joint>') or (line.strip().startswith('</xacro:property')) or (line.strip().startswith('</xacro:macro')):
+            if (line.strip() == '</link>') or (line.strip() == '</joint>') or (line.strip().startswith('</xacro')):
                 new_lines.append(f'{line}\n')
             else:
                 new_lines.append(line)
         
         return '\n'.join(new_lines)
+
+    def get_input_value(self, input_name: str):
+        pass
