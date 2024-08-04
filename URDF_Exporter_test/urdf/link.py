@@ -4,6 +4,7 @@ import numpy as np
 from scipy.spatial.transform.rotation import Rotation as R
 import adsk, adsk.core, adsk.fusion, traceback
 from .urdf_utils import get_occurrence_tf, tf_to_rpy_str, tf_to_xyz_str
+from . import xacro as X
 
 class Link(Element):
     def __init__(self, name: str, app: adsk.core.Application) -> None:
@@ -127,9 +128,8 @@ class Collision(LinkElement):
     def set_contact_coefficients(self, link_occ: adsk.fusion.Occurrence):
         material = link_occ.component.material
         material_name = f'{material.name.replace(" ", "_")}'
-        self.__contact_coefficients = Element("xacro:if", 
-            attrib={"value":f"${{'{material_name}' in existing_contact_coefficients}}"})
-        self.__contact_coefficients.append(Element("xacro:insert_block", attrib={"name":f'{material_name}_contact_coefficients'}))
+        self.__contact_coefficients = X.If(f"${{'{material_name}' in existing_contact_coefficients}}")
+        self.__contact_coefficients.append(X.InsertBlock(f'{material_name}_contact_coefficients'))
         self.append(self.__contact_coefficients)
 
 

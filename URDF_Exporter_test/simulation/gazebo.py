@@ -9,7 +9,7 @@ import os, sys
 class GazeboXacro(ElementTree):
     def __init__(self, robot_name: str, design: adsk.fusion.Design, app: adsk.core.Application):
         super().__init__(Element('robot', {"name": robot_name, "xmlns:xacro": "http://www.ros.org/wiki/xacro"}))
-        self.getroot().append(GazeboPlugin('ignition-gazebo-joint-state-publisher-system', 'ignition::gazebo::system::JointStatePublisher'))
+        self.getroot().append(GazeboPlugin('ignition-gazebo-joint-state-publisher-system', 'ignition::gazebo::systems::JointStatePublisher'))
         self._design = design
         self._app = app
 
