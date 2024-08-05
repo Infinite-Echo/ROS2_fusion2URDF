@@ -7,9 +7,10 @@ from .urdf_utils import get_occurrence_tf, tf_to_rpy_str, tf_to_xyz_str
 from . import xacro as X
 
 class Link(Element):
-    def __init__(self, name: str, app: adsk.core.Application) -> None:
+    def __init__(self, name: str, app: adsk.core.Application, cmd_inputs: adsk.core.CommandInputs) -> None:
         super().__init__("link", attrib={"name": f"{name}_link"})
         self.app = app
+        self.cmd_inputs = cmd_inputs
         self.inertial = Inertial()
         self.visual = Visual()
         self.collision = Collision()
@@ -60,8 +61,10 @@ class Link(Element):
     
     def set_mesh_filepath(self, filepath: str):
         self.visual.set_mesh_filepath(filepath=filepath)
+        if(self.cmd_inputs.itemById('collision_mesh_refinement_input').value):
+            filepath = filepath.replace('.stl', '_collision.stl')
         self.collision.set_mesh_filepath(filepath=filepath)
-
+        
     def set_from_tf(self, tf: np.ndarray[(4,4), np.dtype[any]]):
         self.set_xyz(xyz=tf_to_xyz_str(tf=tf))
         self.set_rpy(rpy=tf_to_rpy_str(tf=tf))
