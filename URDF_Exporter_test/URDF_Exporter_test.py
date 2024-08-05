@@ -129,19 +129,24 @@ class ExportUrdfCommandCreaterHandler(adsk.core.CommandCreatedEventHandler):
             contact_coef_table_inputs = adsk.core.CommandInputs.cast(contact_coef_table.commandInputs)
 
             design = adsk.fusion.Design.cast(_app.activeProduct)
+            materials_list = []
+            row_num = 0
             for i in range(design.materials.count):
-                material_name_input = contact_coef_table_inputs.addStringValueInput('material_name_input_{}'.format(str(i)), 'Material Name', design.materials.item(i).name.replace(" ", "_"))
-                material_name_input.isReadOnly = True
-                friction_coef_input = contact_coef_table_inputs.addStringValueInput('friction_coefficient_input_{}'.format(str(i)), 'Friction Coefficient', '0.0')
-                friction_coef_input.tooltip = 'Friction Coefficient (float)'
-                stiffness_coef_input = contact_coef_table_inputs.addStringValueInput('stiffness_coefficient_input_{}'.format(str(i)), 'Stiffness Coefficient', '0.0')
-                stiffness_coef_input.tooltip = 'Stiffness Coefficient (float)'
-                dampening_coef_input = contact_coef_table_inputs.addStringValueInput('dampening_coefficient_input_{}'.format(str(i)), 'Dampening Coefficient', '0.0')
-                dampening_coef_input.tooltip = 'Dampening Coefficient (float)'
-                contact_coef_table.addCommandInput(material_name_input, i, 0)
-                contact_coef_table.addCommandInput(friction_coef_input, i, 1)
-                contact_coef_table.addCommandInput(stiffness_coef_input, i, 2)
-                contact_coef_table.addCommandInput(dampening_coef_input, i, 3)
+                if design.materials.item(i).name not in materials_list:
+                    materials_list.append(design.materials.item(i).name)
+                    material_name_input = contact_coef_table_inputs.addStringValueInput('material_name_input_{}'.format(str(i)), 'Material Name', design.materials.item(i).name.replace(" ", "_"))
+                    material_name_input.isReadOnly = True
+                    friction_coef_input = contact_coef_table_inputs.addStringValueInput('friction_coefficient_input_{}'.format(str(i)), 'Friction Coefficient', '0.0')
+                    friction_coef_input.tooltip = 'Friction Coefficient (float)'
+                    stiffness_coef_input = contact_coef_table_inputs.addStringValueInput('stiffness_coefficient_input_{}'.format(str(i)), 'Stiffness Coefficient', '0.0')
+                    stiffness_coef_input.tooltip = 'Stiffness Coefficient (float)'
+                    dampening_coef_input = contact_coef_table_inputs.addStringValueInput('dampening_coefficient_input_{}'.format(str(i)), 'Dampening Coefficient', '0.0')
+                    dampening_coef_input.tooltip = 'Dampening Coefficient (float)'
+                    contact_coef_table.addCommandInput(material_name_input, row_num, 0)
+                    contact_coef_table.addCommandInput(friction_coef_input, row_num, 1)
+                    contact_coef_table.addCommandInput(stiffness_coef_input, row_num, 2)
+                    contact_coef_table.addCommandInput(dampening_coef_input, row_num, 3)
+                    row_num += 1
 
         except:
             _ui.messageBox('Failed:\n{}'.format(traceback.format_exc()))
@@ -169,9 +174,9 @@ class ExportUrdfCommandExecuteHandler(adsk.core.CommandEventHandler):
 
             robot_name = adsk.core.StringValueCommandInput.cast(inputs.itemById('robot_name_string_input')).value
             export_path = adsk.core.TextBoxCommandInput.cast(inputs.itemById('export_path_display')).text
-            material_table = adsk.core.TableCommandInput.cast(inputs.itemById('contact_coefficient_table'))
+            
             generate_robot_description_pkg(export_path=export_path, robot_name=robot_name)
-            urdf = URDF(robot_name=robot_name, export_path=export_path, app=_app, material_table=material_table)
+            urdf = URDF(robot_name=robot_name, export_path=export_path, app=_app, inputs=inputs)
             urdf.create_base_link(base_link_occ=base_link, base_footprint=base_footprint)
             urdf.traverse_link(parent_link=base_link, parent_joint=None)
             urdf.export()
