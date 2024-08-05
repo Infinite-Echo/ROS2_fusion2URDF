@@ -34,7 +34,7 @@ class Mats(ElementTree):
         self.getroot().append(new_mat)
 
     def create_coefficients(self, material_table: adsk.core.TableCommandInput):
-        for i in range(material_table.rowCount):
+        for i in range(1, material_table.rowCount):
             attrib_dict = {}
             for j in range(1, material_table.numberOfColumns):
                 table_entry = material_table.getInputAtPosition(i, j)

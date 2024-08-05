@@ -26,8 +26,8 @@ class URDF(ElementTree):
         self.app = app
         design = adsk.fusion.Design.cast(self.app.activeProduct)
         self._inputs = inputs
-        self._material_table = material_table = adsk.core.TableCommandInput.cast(self._inputs.itemById('contact_coefficient_table'))
-        self._materials = Mats(robot_name=robot_name, design=design, material_table=material_table, app=app)
+        self._material_table = adsk.core.TableCommandInput.cast(self._inputs.itemById('contact_coefficient_table'))
+        self._materials = Mats(robot_name=robot_name, design=design, material_table=self._material_table, app=app)
         self._gazebo = GazeboXacro(robot_name=robot_name, design=design, app=app)
         self.stl_export_manager = design.exportManager
         self.getroot().append(X.Property('package_name', self.package_name))
@@ -37,7 +37,7 @@ class URDF(ElementTree):
 
     def create_base_link(self, base_link_occ: adsk.fusion.Occurrence, base_footprint: adsk.fusion.ConstructionPoint = None):
         base_link_occ.component.name = 'base'
-        base_link = Link('base', app=self.app)
+        base_link = Link('base', app=self.app, cmd_inputs=self._inputs)
         tf = get_occurrence_tf(base_link_occ)
         tf[0:3, 3] = 0.0
         base_link.set_from_tf(tf=tf)
@@ -77,7 +77,7 @@ class URDF(ElementTree):
         child_joint_tf = None
 
         #create new link for child
-        new_link = Link(parse_occ_name(child_link), app=self.app) # Initializes all xyz, rpy values to 0
+        new_link = Link(parse_occ_name(child_link), app=self.app, cmd_inputs=self._inputs) # Initializes all xyz, rpy values to 0
         new_joint = Joint(parse_name(child_joint.name), child_joint)
         new_joint.set_child_value(parse_occ_name(child_link))
         new_joint.set_parent_value(parse_occ_name(parent_link))
@@ -127,6 +127,14 @@ class URDF(ElementTree):
         stl_options.filename = f'{self.export_path}/{self.package_name}/src/meshes/{parse_occ_name(occ=occ)}.stl'
         self.stl_export_manager.execute(stl_options)
         del(stl_options)
+
+        # export collision meshes if low refinement used
+        if(self._inputs.itemById('collision_mesh_refinement_input').value):
+            stl_options = self.stl_export_manager.createSTLExportOptions(occ)
+            stl_options.filename = f'{self.export_path}/{self.package_name}/src/meshes/{parse_occ_name(occ=occ)}_collision.stl'
+            stl_options.meshRefinement = adsk.fusion.MeshRefinementSettings.MeshRefinementLow
+            self.stl_export_manager.execute(stl_options)
+            del(stl_options)
 
     def export(self):
         os.makedirs(f'{self.export_path}/{self.package_name}/src/urdf', exist_ok=True)
