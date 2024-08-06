@@ -2,6 +2,7 @@ import adsk, adsk.core, adsk.fusion, traceback
 import os
 import sys
 import csv
+import yaml
 
 
 def init_materials_table(design: adsk.fusion.Design, app: adsk.core.Application, 
@@ -50,3 +51,61 @@ def add_materials_table_header_row(table: adsk.core.TableCommandInput):
     table.addCommandInput(friction_coef_input, 0, 1)
     table.addCommandInput(stiffness_coef_input, 0, 2)
     table.addCommandInput(dampening_coef_input, 0, 3)
+
+def get_file_from_dialog(ui: adsk.core.UserInterface, filter: str = 'All files (*.*)', save: bool = False):
+    file_dialog = ui.createFileDialog()
+    file_dialog.filter = filter
+    file_dialog.isMultiSelectEnabled = False
+    if save == False:
+        results = file_dialog.showOpen()
+    else:
+        results = file_dialog.showSave()
+
+    if results == adsk.core.DialogResults.DialogOK:
+        return file_dialog.filename
+    else:
+        return None
+
+def get_folderpath_from_dialog(ui: adsk.core.UserInterface):
+    folder_dialog = ui.createFolderDialog()
+    results = folder_dialog.showDialog()
+    if results == adsk.core.DialogResults.DialogOK:
+        return folder_dialog.folder
+    else:
+        if results == adsk.core.DialogResults.DialogCancel:
+            return None
+        elif results == adsk.core.DialogResults.DialogError:
+            ui.messageBox('Unable To Load File')
+            return None
+    
+def load_material_config(app: adsk.core.Application, cmd_inputs: adsk.core.CommandInputs):
+    filepath = get_file_from_dialog(ui=app.userInterface, filter='(*.yaml;*.yml);;All files (*.*)')
+    if filepath == None:
+        return
+    with open(filepath, 'r') as file:
+        config = yaml.load(file, yaml.Loader)
+    contact_coef_table = adsk.core.TableCommandInput.cast(cmd_inputs.itemById('contact_coefficient_table'))
+    for i in range(1, contact_coef_table.rowCount):
+        material_name = contact_coef_table.getInputAtPosition(i, 0).value
+        if material_name in config.keys():
+            material = config[material_name]
+            contact_coef_table.getInputAtPosition(i, 1).value = material['Mu']
+            contact_coef_table.getInputAtPosition(i, 2).value = material['Kp']
+            contact_coef_table.getInputAtPosition(i, 3).value = material['Kd']
+
+def save_material_config(app: adsk.core.Application, cmd_inputs: adsk.core.CommandInputs):
+    filepath = get_file_from_dialog(ui=app.userInterface, 
+                                    filter='(*.yaml;*.yml);;All files (*.*)', save=True)
+    if filepath == None:
+        return
+    contact_coef_table = adsk.core.TableCommandInput.cast(cmd_inputs.itemById('contact_coefficient_table'))
+    materials = {}
+    for i in range(1, contact_coef_table.rowCount):
+        materials[contact_coef_table.getInputAtPosition(i, 0).value] = {
+            'Mu':contact_coef_table.getInputAtPosition(i, 1).value,
+            'Kp':contact_coef_table.getInputAtPosition(i, 2).value,
+            'Kd':contact_coef_table.getInputAtPosition(i, 3).value
+        }
+    
+    with open(filepath, 'w') as file:
+        yaml.dump(materials, file, yaml.Dumper)

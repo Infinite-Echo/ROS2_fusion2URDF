@@ -4,7 +4,7 @@
 import adsk, adsk.core, adsk.fusion, traceback
 import os
 import sys
-from .utils import utils, test_utils
+from .utils import command_utils
 import csv
 from .urdf.joint import Joint
 from .urdf.link import Link
@@ -13,6 +13,7 @@ import numpy as np
 from scipy.spatial.transform.rotation import Rotation as R
 from .urdf.urdf_utils import get_joint_child_occ, get_occurrence_tf
 from .ROS2.robot_description_pkg import generate_robot_description_pkg
+import yaml 
 
 """
 # length unit is 'cm' and inertial unit is 'kg/cm^2'
@@ -53,6 +54,11 @@ class ExportUrdfCommandInputChangedHandler(adsk.core.InputChangedEventHandler):
                     coefficient_input.isValueError = False
                 else:
                     coefficient_input.isValueError = True
+            elif cmdInput.id == 'load_material_config_input':
+                command_utils.load_material_config(_app, inputs)
+            elif cmdInput.id == 'save_material_config_input':
+                command_utils.save_material_config(_app, inputs)
+
         except:
             _ui.messageBox('Failed:\n{}'.format(traceback.format_exc()))
 
@@ -103,6 +109,9 @@ class ExportUrdfCommandCreaterHandler(adsk.core.CommandCreatedEventHandler):
             advanced_tab = inputs.addTabCommandInput('advanced_tab', 'Advanced')
             advanced_tab_inputs = advanced_tab.children
 
+            sim_tab = inputs.addTabCommandInput('sim_tab', 'Simulation')
+            sim_tab_inputs = sim_tab.children
+
             ### Basic
             # Get Robot Name
             robot_name_input = basic_tab_inputs.addStringValueInput('robot_name_string_input', 'Robot Name', '')
@@ -122,32 +131,21 @@ class ExportUrdfCommandCreaterHandler(adsk.core.CommandCreatedEventHandler):
             base_footprint_selection_input.setSelectionLimits(minimum=0, maximum=1)
             base_footprint_selection_input.addSelectionFilter("ConstructionPoints")
 
+            ### Simulation - Optional
+            # Use Low Mesh Refinement for Collision
+            collision_mesh_refinement_input = sim_tab_inputs.addBoolValueInput('collision_mesh_refinement_input', 'Use Low Refinement For Collision Meshes', True, '', True)
+
             # Use Material Contact Coefficients
-            material_contact_coef_group = advanced_tab_inputs.addGroupCommandInput('material_contact_coefficient_group', 'Set Material Contact Coefficients')
+            material_contact_coef_group = sim_tab_inputs.addGroupCommandInput('material_contact_coefficient_group', 'Set Material Contact Coefficients')
             material_contact_coef_group_inputs = material_contact_coef_group.children
+
             contact_coef_table = material_contact_coef_group_inputs.addTableCommandInput('contact_coefficient_table', 'Material Contact Coefficients', 4, '1:1:1:1')
-            contact_coef_table_inputs = adsk.core.CommandInputs.cast(contact_coef_table.commandInputs)
-
             design = adsk.fusion.Design.cast(_app.activeProduct)
-            materials_list = []
-            row_num = 0
-            for i in range(design.materials.count):
-                if design.materials.item(i).name not in materials_list:
-                    materials_list.append(design.materials.item(i).name)
-                    material_name_input = contact_coef_table_inputs.addStringValueInput('material_name_input_{}'.format(str(i)), 'Material Name', design.materials.item(i).name.replace(" ", "_"))
-                    material_name_input.isReadOnly = True
-                    friction_coef_input = contact_coef_table_inputs.addStringValueInput('friction_coefficient_input_{}'.format(str(i)), 'Friction Coefficient', '0.0')
-                    friction_coef_input.tooltip = 'Friction Coefficient (float)'
-                    stiffness_coef_input = contact_coef_table_inputs.addStringValueInput('stiffness_coefficient_input_{}'.format(str(i)), 'Stiffness Coefficient', '0.0')
-                    stiffness_coef_input.tooltip = 'Stiffness Coefficient (float)'
-                    dampening_coef_input = contact_coef_table_inputs.addStringValueInput('dampening_coefficient_input_{}'.format(str(i)), 'Dampening Coefficient', '0.0')
-                    dampening_coef_input.tooltip = 'Dampening Coefficient (float)'
-                    contact_coef_table.addCommandInput(material_name_input, row_num, 0)
-                    contact_coef_table.addCommandInput(friction_coef_input, row_num, 1)
-                    contact_coef_table.addCommandInput(stiffness_coef_input, row_num, 2)
-                    contact_coef_table.addCommandInput(dampening_coef_input, row_num, 3)
-                    row_num += 1
-
+            command_utils.init_materials_table(design, _app, contact_coef_table)
+            load_material_config_input = sim_tab_inputs.addBoolValueInput('load_material_config_input', 'Load From File', False, "", True)
+            contact_coef_table.addToolbarCommandInput(load_material_config_input)
+            save_material_config_input = sim_tab_inputs.addBoolValueInput('save_material_config_input', 'Save To File', False, "", True)
+            contact_coef_table.addToolbarCommandInput(save_material_config_input)
         except:
             _ui.messageBox('Failed:\n{}'.format(traceback.format_exc()))
 
