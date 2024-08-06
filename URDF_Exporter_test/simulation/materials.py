@@ -2,6 +2,7 @@ from xml.etree.ElementTree import ElementTree, Element
 import adsk, adsk.core, adsk.fusion, traceback
 import numpy as np
 from ..urdf import xacro as X
+import yaml
 
 def col_to_attrib_name(col_num: int):
     if col_num == 1:
