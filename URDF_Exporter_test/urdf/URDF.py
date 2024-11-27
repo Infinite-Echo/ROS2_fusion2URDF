@@ -28,7 +28,7 @@ class URDF(ElementTree):
         self._inputs = inputs
         self._material_table = adsk.core.TableCommandInput.cast(self._inputs.itemById('contact_coefficient_table'))
         self._materials = Mats(robot_name=robot_name, design=design, material_table=self._material_table, app=app)
-        self._gazebo = GazeboXacro(robot_name=robot_name, design=design, app=app)
+        self._gazebo = GazeboXacro(robot_name=robot_name, design=design, app=app, cmd_inputs=inputs)
         self.stl_export_manager = design.exportManager
         self.getroot().append(X.Property('package_name', self.package_name))
         self.getroot().append(X.Include(f'$(find ${{package_name}})/src/urdf/materials.xacro'))
@@ -50,7 +50,7 @@ class URDF(ElementTree):
 
     def create_base_footprint(self, base_link_occ: adsk.fusion.Occurrence, base_footprint: adsk.fusion.ConstructionPoint):
         base_footprint_link = Element('link', attrib={"name": f"base_footprint"})
-        base_joint = Joint('base', None)
+        base_joint = Joint('base', None, cmd_inputs=self._inputs, app=self.app)
         base_joint.set_parent_value(parent_link='base_footprint', override_suffix=True)
         base_joint.set_child_value(child_link='base')
 
@@ -78,7 +78,7 @@ class URDF(ElementTree):
 
         #create new link for child
         new_link = Link(parse_occ_name(child_link), app=self.app, cmd_inputs=self._inputs) # Initializes all xyz, rpy values to 0
-        new_joint = Joint(parse_name(child_joint.name), child_joint)
+        new_joint = Joint(parse_name(child_joint.name), child_joint, cmd_inputs=self._inputs, app=self.app)
         new_joint.set_child_value(parse_occ_name(child_link))
         new_joint.set_parent_value(parse_occ_name(parent_link))
         

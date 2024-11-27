@@ -4,7 +4,6 @@ import sys
 import csv
 import yaml
 
-
 def init_materials_table(design: adsk.fusion.Design, app: adsk.core.Application, 
                            table: adsk.core.TableCommandInput) -> adsk.core.TableCommandInput:
     materials_list = []
@@ -51,6 +50,47 @@ def add_materials_table_header_row(table: adsk.core.TableCommandInput):
     table.addCommandInput(friction_coef_input, 0, 1)
     table.addCommandInput(stiffness_coef_input, 0, 2)
     table.addCommandInput(dampening_coef_input, 0, 3)
+
+def init_joint_dynamics_table(design: adsk.fusion.Design, app: adsk.core.Application, 
+                           table: adsk.core.TableCommandInput) -> adsk.core.TableCommandInput:
+    joint_list = []
+    add_joint_dynamics_table_header_row(table=table)
+    row_num = 1
+    for joint in design.rootComponent.allAsBuiltJoints:
+        if joint.jointMotion.jointType != adsk.fusion.JointTypes.RigidJointType:
+            joint_name = joint.name
+            row_num = add_joint_dynamics_table_row(joint_name=joint_name,
+                                    joint_list=joint_list,
+                                    row_num=row_num,
+                                    table=table)
+    return table
+
+def add_joint_dynamics_table_row(joint_name: str, joint_list: list, row_num: int,
+                            table: adsk.core.TableCommandInput) -> int:
+    table_inputs = adsk.core.CommandInputs.cast(table.commandInputs)
+    if joint_name not in joint_list:
+        joint_list.append(joint_name)
+        joint_name_input = table_inputs.addStringValueInput('joint_dynamics_name_input{}'.format(str(row_num)), 'Joint Name', joint_name.replace(" ", "_"))
+        joint_name_input.isReadOnly = True
+        joint_friction_input = table_inputs.addStringValueInput('joint_dynamics_friction_input_{}'.format(str(row_num)), 'Joint Friction', '0.0')
+        joint_damping_input = table_inputs.addStringValueInput('joint_dynamics_damping_input_{}'.format(str(row_num)), 'Joint Damping', '0.0')
+        table.addCommandInput(joint_name_input, row_num, 0)
+        table.addCommandInput(joint_friction_input, row_num, 1)
+        table.addCommandInput(joint_damping_input, row_num, 2)
+        row_num += 1
+    return row_num
+
+def add_joint_dynamics_table_header_row(table: adsk.core.TableCommandInput):
+    table_inputs = adsk.core.CommandInputs.cast(table.commandInputs)
+    joint_name_input = table_inputs.addStringValueInput('joint_dynamics_name_input_header', 'Joint Name', 'Joint')
+    joint_friction_input = table_inputs.addStringValueInput('joint_dynamics_friction_input_header', 'Joint Friction Coefficient', 'Friction')
+    joint_damping_input = table_inputs.addStringValueInput('joint_dynamics_damping_input_header', 'Joint Damping Coefficient', 'Damping')
+    joint_name_input.isReadOnly = True
+    joint_friction_input.isReadOnly = True
+    joint_damping_input.isReadOnly = True
+    table.addCommandInput(joint_name_input, 0, 0)
+    table.addCommandInput(joint_friction_input, 0, 1)
+    table.addCommandInput(joint_damping_input, 0, 2)
 
 def get_file_from_dialog(ui: adsk.core.UserInterface, filter: str = 'All files (*.*)', save: bool = False):
     file_dialog = ui.createFileDialog()
@@ -109,3 +149,33 @@ def save_material_config(app: adsk.core.Application, cmd_inputs: adsk.core.Comma
     
     with open(filepath, 'w') as file:
         yaml.dump(materials, file, yaml.Dumper)
+
+def load_joint_dynamics_config(app: adsk.core.Application, cmd_inputs: adsk.core.CommandInputs):
+    filepath = get_file_from_dialog(ui=app.userInterface, filter='(*.yaml;*.yml);;All files (*.*)')
+    if filepath == None:
+        return
+    with open(filepath, 'r') as file:
+        config = yaml.load(file, yaml.Loader)
+    joint_dynamics_table = adsk.core.TableCommandInput.cast(cmd_inputs.itemById('joint_dynamics_table'))
+    for i in range(1, joint_dynamics_table.rowCount):
+        joint_name = joint_dynamics_table.getInputAtPosition(i, 0).value
+        if joint_name in config.keys():
+            joint = config[joint_name]
+            joint_dynamics_table.getInputAtPosition(i, 1).value = joint['Friction']
+            joint_dynamics_table.getInputAtPosition(i, 2).value = joint['Damping']
+
+def save_joint_dynamics_config(app: adsk.core.Application, cmd_inputs: adsk.core.CommandInputs):
+    filepath = get_file_from_dialog(ui=app.userInterface, 
+                                    filter='(*.yaml;*.yml);;All files (*.*)', save=True)
+    if filepath == None:
+        return
+    joint_dynamics_table = adsk.core.TableCommandInput.cast(cmd_inputs.itemById('joint_dynamics_table'))
+    joints = {}
+    for i in range(1, joint_dynamics_table.rowCount):
+        joints[joint_dynamics_table.getInputAtPosition(i, 0).value] = {
+            'Friction':joint_dynamics_table.getInputAtPosition(i, 1).value,
+            'Damping':joint_dynamics_table.getInputAtPosition(i, 2).value
+        }
+    
+    with open(filepath, 'w') as file:
+        yaml.dump(joints, file, yaml.Dumper)
