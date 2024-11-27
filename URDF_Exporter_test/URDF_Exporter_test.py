@@ -48,7 +48,7 @@ class ExportUrdfCommandInputChangedHandler(adsk.core.InputChangedEventHandler):
                     _app.log(f'Export Path Selected: {export_path_dialog.folder}')
                     new_path = f'<div align="left">{export_path_dialog.folder}</div>'
                     current_export_path_input.formattedText = new_path
-            elif '_coefficient_' in cmdInput.id:
+            elif '_coefficient_input' in cmdInput.id:
                 coefficient_input = adsk.core.StringValueCommandInput.cast(cmdInput)
                 if coefficient_input.value.isnumeric() or coefficient_input.value.replace('.', '', 1).isnumeric():
                     coefficient_input.isValueError = False
@@ -58,6 +58,10 @@ class ExportUrdfCommandInputChangedHandler(adsk.core.InputChangedEventHandler):
                 command_utils.load_material_config(_app, inputs)
             elif cmdInput.id == 'save_material_config_input':
                 command_utils.save_material_config(_app, inputs)
+            elif cmdInput.id == 'load_joint_dynamics_config_input':
+                command_utils.load_joint_dynamics_config(_app, inputs)
+            elif cmdInput.id == 'save_joint_dynamics_config_input':
+                command_utils.save_joint_dynamics_config(_app, inputs)
 
         except:
             _ui.messageBox('Failed:\n{}'.format(traceback.format_exc()))
@@ -100,6 +104,8 @@ class ExportUrdfCommandCreaterHandler(adsk.core.CommandCreatedEventHandler):
             cmd.execute.add(onExecute)
             _handlers.append(onExecute)
 
+            design = adsk.fusion.Design.cast(_app.activeProduct)
+
             # Get the CommandInputs collection associated with the command.
             inputs = cmd.commandInputs
 
@@ -134,13 +140,23 @@ class ExportUrdfCommandCreaterHandler(adsk.core.CommandCreatedEventHandler):
             ### Simulation - Optional
             # Use Low Mesh Refinement for Collision
             collision_mesh_refinement_input = sim_tab_inputs.addBoolValueInput('collision_mesh_refinement_input', 'Use Low Refinement For Collision Meshes', True, '', True)
+            
+            # Set Joint Dynamics
+            joint_dynamics_group = sim_tab_inputs.addGroupCommandInput('joint_dynamics_group', 'Set Joint Dynamics')
+            joint_dynamics_group.isExpanded = False
+            joint_dynamics_group_inputs = joint_dynamics_group.children
+            joint_dynamics_table = joint_dynamics_group_inputs.addTableCommandInput('joint_dynamics_table', 'Joint Dynamics', 3, '1:1:1')
+            command_utils.init_joint_dynamics_table(design, _app, joint_dynamics_table)
+            load_joint_dynamics_config_input = sim_tab_inputs.addBoolValueInput('load_joint_dynamics_config_input', 'Load From File', False, "", True)
+            joint_dynamics_table.addToolbarCommandInput(load_joint_dynamics_config_input)
+            save_joint_dynamics_config_input = sim_tab_inputs.addBoolValueInput('save_joint_dynamics_config_input', 'Save To File', False, "", True)
+            joint_dynamics_table.addToolbarCommandInput(save_joint_dynamics_config_input)
 
-            # Use Material Contact Coefficients
+            # Set Material Contact Coefficients
             material_contact_coef_group = sim_tab_inputs.addGroupCommandInput('material_contact_coefficient_group', 'Set Material Contact Coefficients')
+            material_contact_coef_group.isExpanded = False
             material_contact_coef_group_inputs = material_contact_coef_group.children
-
             contact_coef_table = material_contact_coef_group_inputs.addTableCommandInput('contact_coefficient_table', 'Material Contact Coefficients', 4, '1:1:1:1')
-            design = adsk.fusion.Design.cast(_app.activeProduct)
             command_utils.init_materials_table(design, _app, contact_coef_table)
             load_material_config_input = sim_tab_inputs.addBoolValueInput('load_material_config_input', 'Load From File', False, "", True)
             contact_coef_table.addToolbarCommandInput(load_material_config_input)
