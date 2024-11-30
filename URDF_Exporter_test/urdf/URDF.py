@@ -64,12 +64,17 @@ class URDF(ElementTree):
         return
 
     def traverse_link(self, parent_link: adsk.fusion.Occurrence, parent_joint: adsk.fusion.AsBuiltJoint = None):
-        for joint in parent_link.asBuiltJoints:
-            if (parent_joint != None) and (parent_joint.name == joint.name):
-                continue
-            child_link = get_joint_child_occ(parent=parent_link, joint=joint)
-            self.create_link(child_link=child_link, child_joint=joint, parent_link=parent_link, parent_joint=parent_joint)
-            self.traverse_link(parent_link=child_link, parent_joint=joint)
+        design = adsk.fusion.Design.cast(self.app.activeProduct)
+        root_component = design.rootComponent
+
+        # joints = adsk.fusion.AsBuiltJointList()
+        for joint in root_component.allAsBuiltJoints:
+            if(joint.occurrenceOne == parent_link) or (joint.occurrenceTwo == parent_link):
+                if (parent_joint != None) and (parent_joint.name == joint.name):
+                    continue
+                child_link = get_joint_child_occ(parent=parent_link, joint=joint)
+                self.create_link(child_link=child_link, child_joint=joint, parent_link=parent_link, parent_joint=parent_joint)
+                self.traverse_link(parent_link=child_link, parent_joint=joint)
 
     def create_link(self, child_link: adsk.fusion.Occurrence, child_joint: adsk.fusion.AsBuiltJoint, parent_link: adsk.fusion.Occurrence, parent_joint: adsk.fusion.AsBuiltJoint = None):
         parent_link_tf = None
