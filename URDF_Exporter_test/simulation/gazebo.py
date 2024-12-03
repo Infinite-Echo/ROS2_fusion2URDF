@@ -16,6 +16,12 @@ class GazeboXacro(ElementTree):
         self._app = app
         self._cmd_inputs = cmd_inputs
 
+    def add_plugins_from_yaml(self):
+        filepath = adsk.core.TextBoxCommandInput.cast(self._inputs.itemById('gz_plugins_filepath_display')).text
+        with open(filepath, 'r') as file:
+            config = yaml.load(file, yaml.Loader)
+        #TODO: traverse yaml and create corresponding xml nodes
+
 class GazeboPlugin(Element):
     def __init__(self, filename: str, name: str):
         super().__init__('gazebo')

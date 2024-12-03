@@ -179,3 +179,13 @@ def save_joint_dynamics_config(app: adsk.core.Application, cmd_inputs: adsk.core
     
     with open(filepath, 'w') as file:
         yaml.dump(joints, file, yaml.Dumper)
+
+def load_gz_plugins_config(app: adsk.core.Application, cmd_inputs: adsk.core.CommandInputs):
+    filepath = get_file_from_dialog(ui=app.userInterface, filter='(*.yaml;*.yml);;All files (*.*)')
+    current_gz_plugins_filepath_input = adsk.core.TextBoxCommandInput.cast(cmd_inputs.itemById('gz_plugins_filepath_display'))
+    if filepath == None:
+        new_path = f'<div align="left">{None}</div>'
+    else:
+        new_path = f'<div align="left">{filepath}</div>'
+    current_gz_plugins_filepath_input.formattedText = new_path
+    return

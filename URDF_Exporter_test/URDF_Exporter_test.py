@@ -62,6 +62,8 @@ class ExportUrdfCommandInputChangedHandler(adsk.core.InputChangedEventHandler):
                 command_utils.load_joint_dynamics_config(_app, inputs)
             elif cmdInput.id == 'save_joint_dynamics_config_input':
                 command_utils.save_joint_dynamics_config(_app, inputs)
+            elif cmdInput.id == 'gz_plugins_button_input':
+                command_utils.load_gz_plugins_config(_app, inputs)
 
         except:
             _ui.messageBox('Failed:\n{}'.format(traceback.format_exc()))
@@ -141,6 +143,10 @@ class ExportUrdfCommandCreaterHandler(adsk.core.CommandCreatedEventHandler):
             # Use Low Mesh Refinement for Collision
             collision_mesh_refinement_input = sim_tab_inputs.addBoolValueInput('collision_mesh_refinement_input', 'Use Low Refinement For Collision Meshes', True, '', True)
             
+            # Load Gazebo Plugins From YAML
+            gz_plugins_input = sim_tab_inputs.addBoolValueInput('gz_plugins_button_input', 'Gazebo Plugin YAML', False, 'resources/EllipsisButton', True)
+            gz_plugins_filepath_display = sim_tab_inputs.addTextBoxCommandInput('gz_plugins_filepath_display', '', '', 1, True)
+
             # Set Joint Dynamics
             joint_dynamics_group = sim_tab_inputs.addGroupCommandInput('joint_dynamics_group', 'Set Joint Dynamics')
             joint_dynamics_group.isExpanded = False
@@ -162,6 +168,7 @@ class ExportUrdfCommandCreaterHandler(adsk.core.CommandCreatedEventHandler):
             contact_coef_table.addToolbarCommandInput(load_material_config_input)
             save_material_config_input = sim_tab_inputs.addBoolValueInput('save_material_config_input', 'Save To File', False, "", True)
             contact_coef_table.addToolbarCommandInput(save_material_config_input)
+
         except:
             _ui.messageBox('Failed:\n{}'.format(traceback.format_exc()))
 

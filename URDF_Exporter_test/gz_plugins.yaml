@@ -1,0 +1,10 @@
+plugins:
+  diff_drive:
+    filename: "gz-sim-diff-drive-system"
+    name: "gz::sim::systems::DiffDrive"
+      left_joint: Revolute 54_joint
+      right_joint: Revolute 53_joint
+      wheel_separation: 0.36
+      wheel_radius: 0.0762
+      odom_publish_frequency: 1
+      topic: cmd_vel
