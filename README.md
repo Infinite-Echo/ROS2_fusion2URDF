@@ -1,29 +1,33 @@
 # fusion2urdf
 
-I have stopped developing this repo, but any contributions are welcome.
-This repo only supports Gazebo, if you are using pybullet, see: https://github.com/yanshil/Fusion2PyBullet.
+Note: This started as a fork of syuntoku14/fusion2urdf, but I decided not to merge it with the upstream since I ended up rewriting most of the code. This exporter has a command UI for selecting options, base_link, material coefficients, and more. This exporter was written to work for ROS2 Humble but could easily be modified (code or the output) to support other distros. 
+
+A few issues with the output may occur depending on what you use the URDF for. 
+
+-If script fails due to link not existing, there may be a link without a joint in your workspace. I hope to fix this issue eventually but for now remove any unconnected links. 
+-Script may fail with some nested components. There seems to be an issue with the scope of some components. Sometimes the script is unable to locate joints/links outside of the component it started in. I plan to fix this issue soon but in the meantime you can try to move the components to different groups in the workspace.
+-Not all joint types are supported at the moment. The code is easily modifiable to add support for other joint types if needed.
+-If building the output with colcon build, you may need to modify which folders are included (such as rviz) since I have not made default configs for them yet. 
+-If URDF fails to parse, it is likely the joint dynamics were not setup correctly and need to be removed or modified in the URDF.
 
 
-## Updated!!!
-* 2021/01/09: Fix xyz calculation. 
-  * If you see that your components move arround the map center in rviz try this update 
-  * More Infos see: https://forums.autodesk.com/t5/fusion-360-api-and-scripts/difference-of-geometryororiginone-and-geometryororiginonetwo/m-p/9837767
+## Installation
 
-* 2020/11/10: README fix
-  * MacOS Installation command fixed in README
-  * Date format unified in README to yyyy/dd/mm
-  * Shifted Installation Upwards for better User Experience and easier to find
-* 2020/01/04: Multiple updates:
-  * no longer a need to run a bash script to convert stls
-  * some cleanup around joint and transmission generation
-  * defines a sample material tag instead of defining a material in each link
-  * fusion2urdf now generates a self-contained ROS {robot_name}_description package
-  * now launched by roslaunch {robot_name}_description display.launch
-  * changed fusion2urdf output from urdf to xacro for more flexibility
-  * separate out material, transmissions, gazebo elements to separate files
-* 2018/10/20: Fixed functions to generate launch files
-* 2018/09/25: Supports joint types "Rigid", "Slider" & Supports the joints' limit(for "Revolute" and "Slider"). 
-* 2018/10/20: Fixed functions to generate launch files
+Run the following command in your shell.
+
+##### Windows (In PowerShell)
+
+```powershell
+cd <path to fusion2urdf>
+Copy-Item ".\URDF_Exporter\" -Destination "${env:APPDATA}\Autodesk\Autodesk Fusion 360\API\Scripts\" -Recurse
+```
+
+##### macOS (In bash or zsh)
+
+```bash
+cd <path to fusion2urdf>
+cp -r ./URDF_Exporter "$HOME/Library/Application Support/Autodesk/Autodesk Fusion 360/API/Scripts/"
+```
 
 ## What is this script?
 This is a fusion 360 script to export urdf from fusion 360 directly.
