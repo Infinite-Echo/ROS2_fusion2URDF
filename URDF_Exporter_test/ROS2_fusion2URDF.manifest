@@ -1,9 +1,9 @@
 {
 	"autodeskProduct":	"Fusion360",
 	"type":	"script",
-	"author":	"syuntoku14",
+	"author":	"Infinite-Echo",
 	"description":	{
-		"":	"Export stl and URDF file"
+		"":	"ROS2 URDF Exporter"
 	},
 	"supportedOS":	"windows|mac",
 	"editEnabled":	true
