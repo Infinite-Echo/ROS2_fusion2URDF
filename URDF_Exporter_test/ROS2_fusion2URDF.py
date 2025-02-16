@@ -1,6 +1,3 @@
-#Author-syuntoku14
-#Description-Generate URDF file from Fusion 360
-
 import adsk, adsk.core, adsk.fusion, traceback
 import os
 import sys
@@ -23,12 +20,6 @@ import yaml
 _app = None
 _ui  = None
 _handlers = []
-
-# joint effort: 100
-# joint velocity: 100
-# supports "Revolute", "Rigid" and "Slider" joint types
-
-# I'm not sure how prismatic joint acts if there is no limit in fusion model
 
 # Event handler that reacts to any changes the user makes to any of the command inputs.
 class ExportUrdfCommandInputChangedHandler(adsk.core.InputChangedEventHandler):
