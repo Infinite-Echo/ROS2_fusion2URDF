@@ -88,11 +88,11 @@ class URDF(ElementTree):
         
         '''
         Important Notes:
-            -Fusion API gives access to global coordinates of components, URDF uses local coordinates
+            -Fusion API gives access to global coordinates of components; URDF uses local coordinates
             -If a joint is rigid, the joint origin uses the child link's origin because rigid-asBuiltJoints do not have a geometry property. 
-             In this case, the child link's offsets are set to zero inside the visual, collision, inertial properties in the URDF
+             In this case, the child link's offsets are set to zero inside the visual, collision, and inertial properties in the URDF
             -If a joint is not rigid, the child link's properties must be offset because the joint's geometry origin is used instead of the child link's origin
-                -Additionally, when a new joint references a link whose parent joint is non-rigid, the new joint's origin starts from the parent joints origin not the link's origin
+                -Additionally, when a new joint references a link whose parent joint is non-rigid, the new joint's origin starts from the parent's joint origin, not the link's origin
         '''
 
         if(parent_joint != None) and (parent_joint.jointMotion.jointType != adsk.fusion.JointTypes.RigidJointType):
