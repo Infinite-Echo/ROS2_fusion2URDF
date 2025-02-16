@@ -1,5 +1,5 @@
 # ROS2_fusion2URDF
-Note: This started as a fork of syuntoku14/fusion2urdf, but I decided not to detach from upstream since I rewrote everything. 
+Note: This started as a fork of syuntoku14/fusion2urdf, but I decided to detach from upstream since I rewrote everything. 
 
 This exporter has a command UI for selecting options, base_link, material coefficients, and more. This exporter was written to work for ROS2 Humble but could easily be modified (code or the output) to support other distros. 
 
