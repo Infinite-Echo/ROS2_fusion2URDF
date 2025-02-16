@@ -52,11 +52,10 @@ class Joint(Element):
             if joint.name.replace(" ", "_") == joint_dynamics_table.getInputAtPosition(i, 0).value:
                 joint_friction = float(joint_dynamics_table.getInputAtPosition(i, 1).value)
                 joint_damping = float(joint_dynamics_table.getInputAtPosition(i, 2).value)
-                if joint_friction != 0.0:
+                if joint_friction != 0.0 and joint_damping != 0.0:
                     self.__dynamics.attrib['friction'] = str(joint_friction)
-                if joint_damping != 0.0:
                     self.__dynamics.attrib['damping'] = str(joint_damping)
-                self.append(self.__dynamics)
+                    self.append(self.__dynamics)
         
     def set_axis_value(self, joint: adsk.fusion.AsBuiltJoint):
         axis_vector = joint.geometry.primaryAxisVector.asArray()

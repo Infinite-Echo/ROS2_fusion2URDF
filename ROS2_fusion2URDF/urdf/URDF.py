@@ -67,7 +67,6 @@ class URDF(ElementTree):
         design = adsk.fusion.Design.cast(self.app.activeProduct)
         root_component = design.rootComponent
 
-        # joints = adsk.fusion.AsBuiltJointList()
         for joint in root_component.allAsBuiltJoints:
             if(joint.occurrenceOne == parent_link) or (joint.occurrenceTwo == parent_link):
                 if (parent_joint != None) and (parent_joint.name == joint.name):

@@ -12,11 +12,6 @@ from .urdf.urdf_utils import get_joint_child_occ, get_occurrence_tf
 from .ROS2.robot_description_pkg import generate_robot_description_pkg
 import yaml 
 
-"""
-# length unit is 'cm' and inertial unit is 'kg/cm^2'
-# If there is no 'body' in the root component, maybe the corrdinates are wrong.
-"""
-
 _app = None
 _ui  = None
 _handlers = []
