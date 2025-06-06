@@ -28,8 +28,15 @@ class Mats(ElementTree):
         self.create_coefficients(material_table)
 
     def add_new_material(self, material: adsk.core.Material):
-        color = adsk.core.ColorProperty.cast(material.appearance.appearanceProperties.itemByName('Color'))
-        rgba_values = color.value.getColor()
+        appearance = (material.appearance)
+        if not appearance.isUsed:
+            return
+        if not appearance.hasTexture:
+            color = adsk.core.ColorProperty.cast(appearance.appearanceProperties.itemByName('Color'))
+            rgba_values = color.value.getColor()
+        else:
+            self._app.log(f'''Warning: Material "{material.name}" Has Appearance "{appearance.name}" Which Contains a Texture. Texture Support Is Not Implemented Yet. Texture Will Be Ignored and Replaced With White. Texture Can Be Manually Added in to the URDF Later if Desired or Assign a Different Appearance to the Material to Change the Color.''')
+            rgba_values = [True, 255, 255, 255, 255]
         new_mat = Element('material', attrib={'name':f'{material.name.replace(" ", "_")}'})
         new_mat.append(Element('color', attrib={'rgba': f'{rgba_values[1]/255} {rgba_values[2]/255} {rgba_values[3]/255} {rgba_values[4]/255}'}))
         self.getroot().append(new_mat)
