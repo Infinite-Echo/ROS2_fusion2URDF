@@ -24,6 +24,10 @@ class URDF(ElementTree):
         self.robot_name = robot_name
         self.export_path = export_path
         self.app = app
+        self._link_name_counts = {}
+        self._link_name_map = {}
+        self._joint_name_counts = {}
+        self._joint_name_map = {}
         design = adsk.fusion.Design.cast(self.app.activeProduct)
         self._inputs = inputs
         self._material_table = adsk.core.TableCommandInput.cast(self._inputs.itemById('contact_coefficient_table'))
@@ -81,10 +85,10 @@ class URDF(ElementTree):
         child_joint_tf = None
 
         #create new link for child
-        new_link = Link(parse_occ_name(child_link), app=self.app, cmd_inputs=self._inputs) # Initializes all xyz, rpy values to 0
-        new_joint = Joint(parse_name(child_joint.name), child_joint, cmd_inputs=self._inputs, app=self.app)
-        new_joint.set_child_value(parse_occ_name(child_link))
-        new_joint.set_parent_value(parse_occ_name(parent_link))
+        new_link = Link(self._get_unique_occ_name(child_link), app=self.app, cmd_inputs=self._inputs) # Initializes all xyz, rpy values to 0
+        new_joint = Joint(self._get_unique_joint_name(child_joint), child_joint, cmd_inputs=self._inputs, app=self.app)
+        new_joint.set_child_value(self._get_unique_occ_name(child_link))
+        new_joint.set_parent_value(self._get_unique_occ_name(parent_link))
         
         '''
         Important Notes:
@@ -128,14 +132,14 @@ class URDF(ElementTree):
 
     def export_stl(self, occ: adsk.fusion.Occurrence):
         stl_options = self.stl_export_manager.createSTLExportOptions(occ)
-        stl_options.filename = f'{self.export_path}/{self.package_name}/src/meshes/{parse_occ_name(occ=occ)}.stl'
+        stl_options.filename = f'{self.export_path}/{self.package_name}/src/meshes/{self._get_unique_occ_name(occ=occ)}.stl'
         self.stl_export_manager.execute(stl_options)
         del(stl_options)
 
         # export collision meshes if low refinement used
         if(self._inputs.itemById('collision_mesh_refinement_input').value):
             stl_options = self.stl_export_manager.createSTLExportOptions(occ)
-            stl_options.filename = f'{self.export_path}/{self.package_name}/src/meshes/{parse_occ_name(occ=occ)}_collision.stl'
+            stl_options.filename = f'{self.export_path}/{self.package_name}/src/meshes/{self._get_unique_occ_name(occ=occ)}_collision.stl'
             stl_options.meshRefinement = adsk.fusion.MeshRefinementSettings.MeshRefinementLow
             self.stl_export_manager.execute(stl_options)
             del(stl_options)
@@ -167,6 +171,32 @@ class URDF(ElementTree):
                 new_lines.append(line)
         
         return '\n'.join(new_lines)
+    
+    def _get_unique_occ_name(self, occ: adsk.fusion.Occurrence) -> str:
+        token = occ.entityToken
+        if token in self._link_name_map:
+            return self._link_name_map[token]
+        
+        base = parse_occ_name(occ)
+        count = self._link_name_counts.get(base, 0) + 1
+        self._link_name_counts[base] = count
+
+        unique = base if count == 1 else f"{base}_{count}"
+        self._link_name_map[token] = unique
+        return unique
+    
+    def _get_unique_joint_name(self, joint: adsk.fusion.AsBuiltJoint) -> str:
+        token = joint.entityToken
+        if token in self._joint_name_map:
+            return self._joint_name_map[token]
+        
+        base = parse_name(joint.name)
+        count = self._joint_name_counts.get(base, 0) + 1
+        self._joint_name_counts[base] = count
+
+        unique = base if count == 1 else f"{base}_{count}"
+        self._joint_name_map[token] = unique
+        return unique
 
     def get_input_value(self, input_name: str):
         pass
